@@ -35,17 +35,19 @@ public class StatsClient extends BaseClient {
                 "end", end,
                 "unique", unique.toString()
         ));
+        log.info("+StatsClient - getStats: start = {}, end = {}, unique = {}, uris = {}", start, end, unique, uris);
+
         ResponseEntity<Object> answer;
         if (uris != null) {
             parameters.put("uris", uris);
-            log.info("+StatsClient - getStats: start = {}, end = {}, unique = {}, uris = {}", start, end, unique, uris);
+            log.info("+StatsClient - getStats, uris != null: start = {}, end = {}, unique = {}, uris = {}", start, end, unique, uris);
             answer = get("/stats?start={start}&end={end}&uris={uris}&unique={unique}", parameters);
         } else {
-            log.info("+StatsClient - getStats: start = {}, end = {}, unique = {}, uris = {}", start, end, unique, uris);
+            log.info("+StatsClient - getStats, uris == null: start = {}, end = {}, unique = {}, uris = {}", start, end, unique, uris);
             answer = get("/stats?start={start}&end={end}&unique={unique}", parameters);
         }
 
-        log.info("+StatsClient - getStats: answer = {}", answer);
+        log.info("-StatsClient - getStats: answer = {}", answer);
         return answer;
     }
 

@@ -60,9 +60,13 @@ public class StatsServiceImpl implements StatsService {
 
         for (String uri : uris) {
             if (unique) {
+                log.info("+StatsServiceImpl - findWithUri, unique: uri = {}", uri);
                 answer.add(statsRepository.findUnique(start, end, uri));
+                log.info("-StatsServiceImpl - findWithUri, unique: answer = {}", answer);
             } else {
+                log.info("+StatsServiceImpl - findWithUri, not unique: uri = {}", uri);
                 answer.add(statsRepository.findNotUnique(start, end, uri));
+                log.info("-StatsServiceImpl - findWithUri, not unique: answer = {}", answer);
             }
         }
 
