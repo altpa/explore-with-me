@@ -21,17 +21,19 @@ public class MainServiceController {
                                            @RequestParam(required = false) List<String> uris,
                                            @RequestParam(defaultValue = "false") Boolean unique) {
 
-        log.info("+MainServiceController - getStats: start = {}, end = {}, uri = {}, unique = {}", start, end, uris, unique);
+        log.debug("+MainServiceController - getStats: start = {}, end = {}, uri = {}, unique = {}", start, end, uris, unique);
         ResponseEntity<Object>  answer =  service.getStats(start, end, uris, unique);
-        log.info("-MainServiceController - getStats: {}", answer);
-        return null;
+        log.debug("-MainServiceController - getStats: {}", answer);
+
+        return answer;
     }
 
     @PostMapping("/hit")
     public ResponseEntity<Object> addHit(@RequestBody HitDto hitDto) {
-        log.info("+MainServiceController - addHit: hitDto: app = {}, uri = {}, ip = {}, timestamp = {}", hitDto.getApp(), hitDto.getUri(), hitDto.getIp(), hitDto.getTimestamp());
+        log.debug("+MainServiceController - addHit: hitDto: app = {}, uri = {}, ip = {}, timestamp = {}", hitDto.getApp(), hitDto.getUri(), hitDto.getIp(), hitDto.getTimestamp());
         ResponseEntity<Object> answer = service.addHit(hitDto);
-        log.info("-MainServiceController - addHit: hitDto: answer = {}", answer);
+        log.debug("-MainServiceController - addHit: hitDto: answer = {}", answer);
+
         return answer;
     }
 }

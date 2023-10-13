@@ -30,7 +30,7 @@ public class StatsServiceImpl implements StatsService {
         LocalDateTime start = LocalDateTime.parse(UriUtils.decode(startRequest, "UTF-8"), formatter);
         LocalDateTime end = LocalDateTime.parse(UriUtils.decode(endRequest, "UTF-8"), formatter);
 
-        log.info("+StatsServiceImpl - getStats: start = {}, end = {}, uri = {}, unique = {}", start, end, uris, unique);
+        log.debug("+StatsServiceImpl - getStats: start = {}, end = {}, uri = {}, unique = {}", start, end, uris, unique);
         List<ViewStatsDto> answer = new ArrayList<>(Collections.emptyList());
 
         if (uris != null) {
@@ -38,19 +38,19 @@ public class StatsServiceImpl implements StatsService {
         } else {
             answer = findWithoutUri(start, end, unique);
         }
-        log.info("-StatsServiceImpl - getStats: answer = {}", answer);
+        log.debug("-StatsServiceImpl - getStats: answer = {}", answer);
 
         answer = sortViewStats(answer);
-        log.info("-StatsServiceImpl - getStats: sorted answer = {}", answer);
+        log.debug("-StatsServiceImpl - getStats: sorted answer = {}", answer);
 
         return answer;
     }
 
     @Override
     public HitDto addHit(HitDto hitDto) {
-        log.info("+StatsServiceImpl - addHit: hitDto = {}", hitDto);
+        log.debug("+StatsServiceImpl - addHit: hitDto = {}", hitDto);
         Hit answer = statsRepository.save(mapper.toModel(hitDto));
-        log.info("-StatsServiceImpl - addHit: answer = {}", answer);
+        log.debug("-StatsServiceImpl - addHit: answer = {}", answer);
 
         return mapper.toDto(answer);
     }
@@ -60,13 +60,13 @@ public class StatsServiceImpl implements StatsService {
 
         for (String uri : uris) {
             if (unique) {
-                log.info("+StatsServiceImpl - findWithUri, unique: uri = {}", uri);
+                log.debug("+StatsServiceImpl - findWithUri, unique: uri = {}", uri);
                 answer.add(statsRepository.findUnique(start, end, uri));
-                log.info("-StatsServiceImpl - findWithUri, unique: answer = {}", answer);
+                log.debug("-StatsServiceImpl - findWithUri, unique: answer = {}", answer);
             } else {
-                log.info("+StatsServiceImpl - findWithUri, not unique: uri = {}", uri);
+                log.debug("+StatsServiceImpl - findWithUri, not unique: uri = {}", uri);
                 answer.add(statsRepository.findNotUnique(start, end, uri));
-                log.info("-StatsServiceImpl - findWithUri, not unique: answer = {}", answer);
+                log.debug("-StatsServiceImpl - findWithUri, not unique: answer = {}", answer);
             }
         }
 

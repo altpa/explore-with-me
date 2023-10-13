@@ -25,19 +25,19 @@ public class StatsServerController {
                                         @RequestParam(required = false) List<String> uris,
                                         @RequestParam(defaultValue = "false") Boolean unique) {
 
-        log.info("+StatsServerController - getStats: start = {}, end = {}, uri = {}, unique = {}",
+        log.debug("+StatsServerController - getStats: start = {}, end = {}, uri = {}, unique = {}",
                 start, end, uris, unique);
         List<ViewStatsDto> answer =  statsService.getStats(start, end, uris, unique);
-        log.info("-StatsServerController - getStats: {}", answer);
+        log.debug("-StatsServerController - getStats: {}", answer);
         return answer;
     }
 
     @PostMapping("/hit")
     public HitDto addHit(@RequestBody HitDto hitDto) {
-        log.info("+StatsServerController - addHit: hitDto: app = {}, uri = {}, ip = {}, timestamp = {}",
+        log.debug("+StatsServerController - addHit: hitDto: app = {}, uri = {}, ip = {}, timestamp = {}",
                 hitDto.getApp(), hitDto.getUri(), hitDto.getIp(), hitDto.getTimestamp());
         HitDto answer = statsService.addHit(hitDto);
-        log.info("-StatsServerController - addHit: hitDto: app = {}, uri = {}, ip = {}, timestamp = {}",
+        log.debug("-StatsServerController - addHit: hitDto: app = {}, uri = {}, ip = {}, timestamp = {}",
                 answer.getApp(), answer.getUri(), answer.getIp(), answer.getTimestamp());
         return answer;
     }
