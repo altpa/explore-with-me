@@ -1,15 +1,66 @@
-version: '3.1'
+version: '3.8'
 services:
   stats-server:
     ports:
-      - "9090:9090"
+      - ${SERVER_PORTS}
+    build: ${STATS_SERVER_BUILD}
+    image: ${STATS_SERVER_IMAGE}
+    container_name: ${STATS_SERVER_CONTAINER_NAME}
+    depends_on:
+      - stats-db
+    environment:
+      - SPRING_DATASOURCE_URL=$STATS_SERVER_DATASOURCE_URL
+      - SPRING_DRIVER_CLASS_NAME=$DRIVER_CLASS_NAME
+      - POSTGRES_USER=$USER
+      - POSTGRES_PASSWORD=$PASSWORD
+      - STATS_SERVER_URL=$SERVER_URL
+    deploy:
+      resources:
+        limits:
+          cpus: ${CPUS_LIMITS}
+          memory: ${MEMORY_LIMITS}
+        reservations:
+          cpus: ${CPUS_RESERVATIONS}
+          memory: ${MEMORY_RESERVATIONS}
 
   stats-db:
-    image: postgres:14-alpine
-
-  ewm-service:
     ports:
-      - "8080:8080"
+      - ${STATS_DB_PORTS}
+    image: ${DB_IMAGE}
+    container_name: stats-db_container
+    environment:
+      - POSTGRES_DB=$STATS_DB_CONTAINER_NAME
+      - POSTGRES_USER=$USER
+      - POSTGRES_PASSWORD=$PASSWORD
+
+
+  ewm:
+    build: ${EWM_BUILD}
+    image: ${EWM_IMAGE}
+    container_name: ${EWM_CONTAINER_NAME}
+    ports:
+      - ${EMW_PORTS}
+    depends_on:
+      - ewm-db
+    environment:
+      - SPRING_DATASOURCE_URL=$EWM_DATASOURCE_URL
+      - POSTGRES_USER=$USER
+      - POSTGRES_PASSWORD=$PASSWORD
+    deploy:
+      resources:
+        limits:
+          cpus: ${CPUS_LIMITS}
+          memory: ${MEMORY_LIMITS}
+        reservations:
+          cpus: ${CPUS_RESERVATIONS}
+          memory: ${MEMORY_RESERVATIONS}
 
   ewm-db:
-    image: postgres:14-alpine
+    ports:
+      - ${EWM_DB_PORTS}
+    image: ${DB_IMAGE}
+    container_name: $EWM_DB_CONTAINER_NAME
+    environment:
+      - POSTGRES_DB=ewm-db
+      - POSTGRES_USER=$USER
+      - POSTGRES_PASSWORD=$PASSWORD
