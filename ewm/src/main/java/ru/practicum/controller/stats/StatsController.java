@@ -1,9 +1,11 @@
-package ru.practicum;
+package ru.practicum.controller.stats;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import ru.practicum.HitDto;
+import ru.practicum.service.stats.MainStatsServiceImpl;
 
 import java.util.List;
 
@@ -11,9 +13,9 @@ import java.util.List;
 @RestController
 @RequestMapping
 @RequiredArgsConstructor
-public class MainServiceController {
+public class StatsController {
 
-    private final MainService service;
+    private final MainStatsServiceImpl service;
 
     @GetMapping("/stats")
     public ResponseEntity<Object> getStats(@RequestParam String start,
