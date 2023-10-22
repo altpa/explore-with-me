@@ -25,17 +25,23 @@ public class PublicController {
     private final PublicService pubService;
 
     @GetMapping("/compilations")
-    public Set<CompilationDto> getCompilations(@RequestParam boolean pinned,
+    public Set<CompilationDto> getCompilations(@RequestParam(defaultValue = "false") boolean pinned,
                                             @RequestParam(defaultValue = "0") int from,
                                             @RequestParam(defaultValue = "10") int size) {
+        log.debug("+ getCompilations. pinned = {}. from = {}, size = {}", pinned, from, size);
+        Set<CompilationDto> answer = pubService.getCompilations(pinned, from, size);
+        log.debug("- getCompilations. answer = {}", answer);
 
-        return null;
+        return answer;
     }
 
     @GetMapping("/compilations/{compId}")
     public CompilationDto getCompilationById(@PathVariable long compId) {
+        log.debug("+ getCompilationById. compId = {}", compId);
+        CompilationDto answer = pubService.getCompilationById(compId);
+        log.debug("- getCompilationById. answer = {}", answer);
 
-        return null;
+        return answer;
     }
 
     @GetMapping("/categories")
@@ -67,8 +73,13 @@ public class PublicController {
                                         @RequestParam(defaultValue = "0") String sort,
                                         @RequestParam(defaultValue = "0") int from,
                                      @RequestParam(defaultValue = "10") int size) {
-
-        return null;
+        log.debug("+ getEvents. text = {}, categories = {}, paid = {}, rangeStart={}, rangeEnd = {}, " +
+                "onlyAvailable = {}, sort = {}, from = {}, size = {}",
+                text, categories, paid, rangeStart, rangeEnd, onlyAvailable, sort, from, size);
+        Set<EventShortDto> answer = pubService.getEvents(text, categories, paid, rangeStart, rangeEnd, onlyAvailable,
+                sort, from, size);
+        log.debug("- getEvents. answer = {}", answer);
+        return answer;
     }
 
     @GetMapping("/events/{id}")

@@ -21,6 +21,7 @@ import ru.practicum.dto.user.NewUserRequest;
 import ru.practicum.dto.complination.UpdateCompilationRequest;
 import ru.practicum.dto.event.UpdateEventAdminRequest;
 import ru.practicum.dto.user.UserDto;
+import ru.practicum.model.State;
 import ru.practicum.service.admin.AdminService;
 
 import javax.validation.Valid;
@@ -69,25 +70,36 @@ public class AdminController {
     }
 
     @GetMapping("/events")
-    public Set<EventFullDto> getEvents(@RequestParam(required = false) List<Integer> users,
-                                       @RequestParam(required = false) List<String> states,
-                                       @RequestParam(required = false) List<Long> categories,
-                                       @RequestParam(required = false) String rangeStart,
-                                       @RequestParam(required = false) String rangeEnd,
+    @ResponseStatus(OK)
+    public Set<EventFullDto> getEvents(@RequestParam List<Long> users,
+                                       @RequestParam List<State> states,
+                                       @RequestParam List<Long> categories,
+                                       @RequestParam String rangeStart,
+                                       @RequestParam String rangeEnd,
                                        @RequestParam(defaultValue = "0") int from,
                                        @RequestParam(defaultValue = "10") int size) {
 
-        return adminService.getEvents(users, states, categories, rangeStart, rangeEnd, from, size);
+        log.debug("+ getEvents. users: {}, states: {}, categories: {}, rangeStart: {}, rangeEnd: {}, from={}, size={}",
+                users, states, categories, rangeStart, rangeEnd, from, size);
+        Set<EventFullDto>  answer = adminService.getEvents(users, states, categories, rangeStart, rangeEnd, from, size);
+        log.debug("- getEvents. answer: {}", answer);
+
+        return answer;
     }
 
     @PatchMapping("/events/{eventId}")
+    @ResponseStatus(OK)
     public EventFullDto updateEvent(@PathVariable long eventId,
                                                @Valid @RequestBody UpdateEventAdminRequest updateEventAdminRequest) {
+        log.debug("+ updateEvent. eventId = {}, updateEventAdminRequest: {}", eventId, updateEventAdminRequest);
+        EventFullDto answer = adminService.updateEvent(eventId, updateEventAdminRequest);
+        log.debug("- updateEvent. answer: {}", answer);
 
-        return adminService.updateEvent(eventId, updateEventAdminRequest);
+        return answer;
     }
 
     @GetMapping("/users")
+    @ResponseStatus(OK)
     public Set<UserDto> getUsers(@RequestParam(required = false) List<Long> ids,
                                  @RequestParam(defaultValue = "0") int from,
                                  @RequestParam(defaultValue = "10") int size) {
@@ -113,20 +125,34 @@ public class AdminController {
     }
 
     @PostMapping("/compilations")
+    @ResponseStatus(CREATED)
     public CompilationDto addCompilation(@Valid @RequestBody NewCompilationDto newCompilationDto) {
 
-        return adminService.addCompilation(newCompilationDto);
+        log.debug("+ addCompilation. newCompilationDto: {}", newCompilationDto);
+        CompilationDto answer = adminService.addCompilation(newCompilationDto);
+        log.debug("- addCompilation. answer: {}", answer);
+
+        return answer;
     }
 
     @DeleteMapping("/compilations/{compId}")
-    public void deleteCompilation(@PathVariable long compId) {
-        adminService.deleteCompilation(compId);
+    @ResponseStatus(NO_CONTENT)
+    public long deleteCompilation(@PathVariable long compId) {
+        log.debug("+ deleteCompilation. compId = {}", compId);
+        long answer = adminService.deleteCompilation(compId);
+        log.debug("- deleteCompilation. deleted compId = {}", answer);
+        return answer;
     }
 
     @PatchMapping("/compilations/{compId}")
-    public EventFullDto updateEvent(@PathVariable long compId,
+    @ResponseStatus(OK)
+    public CompilationDto updateCompilations(@PathVariable long compId,
                                     @Valid @RequestBody UpdateCompilationRequest updateCompilationRequest) {
 
-        return adminService.updateEvent(compId, updateCompilationRequest);
+        log.debug("+ updateCompilations. compId = {}, updateCompilationRequest: {}", compId, updateCompilationRequest);
+        CompilationDto answer = adminService.updateCompilations(compId, updateCompilationRequest);
+        log.debug("- updateCompilations. answer: {}", answer);
+
+        return answer;
     }
 }

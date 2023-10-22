@@ -23,18 +23,18 @@ public class StatsController {
                                            @RequestParam(required = false) List<String> uris,
                                            @RequestParam(defaultValue = "false") Boolean unique) {
 
-        log.debug("+MainServiceController - getStats: start = {}, end = {}, uri = {}, unique = {}", start, end, uris, unique);
+        log.debug("+StatsController - getStats: start = {}, end = {}, uri = {}, unique = {}", start, end, uris, unique);
         ResponseEntity<Object>  answer =  service.getStats(start, end, uris, unique);
-        log.debug("-MainServiceController - getStats: {}", answer);
+        log.debug("-StatsController - getStats: {}", answer);
 
         return answer;
     }
 
     @PostMapping("/hit")
     public ResponseEntity<Object> addHit(@RequestBody HitDto hitDto) {
-        log.debug("+MainServiceController - addHit: hitDto: app = {}, uri = {}, ip = {}, timestamp = {}", hitDto.getApp(), hitDto.getUri(), hitDto.getIp(), hitDto.getTimestamp());
+        log.debug("+StatsController - addHit: hitDto: app = {}, uri = {}, ip = {}, timestamp = {}", hitDto.getApp(), hitDto.getUri(), hitDto.getIp(), hitDto.getTimestamp());
         ResponseEntity<Object> answer = service.addHit(hitDto);
-        log.debug("-MainServiceController - addHit: hitDto: answer = {}", answer);
+        log.debug("-StatsController - addHit: hitDto: answer = {}", answer);
 
         return answer;
     }

@@ -7,6 +7,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.context.request.WebRequest;
@@ -21,14 +22,42 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+import static org.springframework.http.HttpStatus.BAD_REQUEST;
+import static org.springframework.http.HttpStatus.CONFLICT;
+import static org.springframework.http.HttpStatus.NOT_FOUND;
+
 @Slf4j
 @RestControllerAdvice
 public class MainExceptionHandler extends ResponseEntityExceptionHandler {
 
+    @ExceptionHandler({EventTimeException.class})
+    public ResponseEntity<ApiError> handleEventTimeException(Exception ex) throws IOException {
+        ApiError apiError = new ApiError(
+                CONFLICT,
+                "Time not valid",
+                ex.getLocalizedMessage(),
+                Collections.singletonList(error(ex))
+        );
+
+        return new ResponseEntity<>(apiError, new HttpHeaders(), apiError.getStatus());
+    }
+
+    @ExceptionHandler({ConflictException.class})
+    public ResponseEntity<ApiError> handleConflictException(Exception ex) throws IOException {
+        ApiError apiError = new ApiError(
+                CONFLICT,
+                "Conflict in request",
+                ex.getLocalizedMessage(),
+                Collections.singletonList(error(ex))
+        );
+
+        return new ResponseEntity<>(apiError, new HttpHeaders(), apiError.getStatus());
+    }
+
     @ExceptionHandler({IllegalArgumentException.class})
     public ResponseEntity<ApiError> handleBadRequest(Exception ex) throws IOException {
         ApiError apiError = new ApiError(
-                HttpStatus.BAD_REQUEST,
+                BAD_REQUEST,
                 "Value not valid",
                 ex.getLocalizedMessage(),
                 Collections.singletonList(error(ex))
@@ -40,7 +69,7 @@ public class MainExceptionHandler extends ResponseEntityExceptionHandler {
     @ExceptionHandler({BadRequestException.class})
     public ResponseEntity<ApiError> handleEwmBadRequest(BadRequestException ex) throws IOException {
         ApiError apiError = new ApiError(
-                HttpStatus.BAD_REQUEST,
+                BAD_REQUEST,
                 "Error in request",
                 ex.getLocalizedMessage(),
                 Collections.singletonList(error(ex))
@@ -52,7 +81,7 @@ public class MainExceptionHandler extends ResponseEntityExceptionHandler {
     @ExceptionHandler({ObjectNotFoundException.class})
     public ResponseEntity<ApiError> handleNotFound(ObjectNotFoundException ex) throws IOException {
         ApiError apiError = new ApiError(
-                HttpStatus.NOT_FOUND,
+                NOT_FOUND,
                 "Not found in DB",
                 ex.getLocalizedMessage(),
                 Collections.singletonList(error(ex))
@@ -73,7 +102,7 @@ public class MainExceptionHandler extends ResponseEntityExceptionHandler {
         }
 
         ApiError apiError = new ApiError(
-                HttpStatus.BAD_REQUEST,
+                BAD_REQUEST,
                 "Данные в реквесте невалидны",
                 ex.getLocalizedMessage(),
                 errors
@@ -91,7 +120,7 @@ public class MainExceptionHandler extends ResponseEntityExceptionHandler {
 		}
 
 		ApiError apiError = new ApiError(
-                HttpStatus.BAD_REQUEST,
+                BAD_REQUEST,
                 "Данные в реквесте невалидны",
 				ex.getLocalizedMessage(),
                 errors
@@ -99,6 +128,25 @@ public class MainExceptionHandler extends ResponseEntityExceptionHandler {
 
 		return new ResponseEntity<>(apiError, new HttpHeaders(), apiError.getStatus());
 	}
+
+    @Override
+    protected ResponseEntity<Object> handleMissingServletRequestParameter(MissingServletRequestParameterException ex,
+                                                                          HttpHeaders headers, HttpStatus status,
+                                                                          WebRequest request) {
+        ApiError apiError = null;
+        try {
+            apiError = new ApiError(
+                    BAD_REQUEST,
+                    "No request param",
+                    ex.getLocalizedMessage(),
+                    Collections.singletonList(error(ex))
+            );
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+
+        return new ResponseEntity<>(apiError, new HttpHeaders(), apiError.getStatus());
+    }
 
     private String error(Exception e) throws IOException {
         StringWriter sw = new StringWriter();

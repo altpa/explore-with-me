@@ -1,5 +1,7 @@
 package ru.practicum.model;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.Data;
 import lombok.ToString;
 
@@ -9,14 +11,22 @@ import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
 import javax.persistence.JoinColumn;
+import javax.persistence.ManyToMany;
 import javax.persistence.OneToOne;
 import javax.persistence.Table;
 import java.time.LocalDateTime;
+import java.util.Objects;
+import java.util.Set;
+
+import static ru.practicum.model.State.PENDING;
 
 @Data
 @Entity
 @Table(name = "events")
 public class Event {
+
+    private static final String DATE_PATTERN = "yyyy-MM-dd HH:mm:ss";
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id", nullable = false)
@@ -34,12 +44,15 @@ public class Event {
     private Long confirmedRequests;
 
     @Column(name = "created_on")
-    private LocalDateTime createdOn;
+    @JsonFormat(pattern = DATE_PATTERN)
+    private LocalDateTime createdOn = LocalDateTime.now();
 
     @Column(name = "description")
+    @ToString.Exclude
     private String description;
 
     @Column(name = "event_date")
+    @JsonFormat(pattern = DATE_PATTERN)
     private LocalDateTime eventDate;
 
     @OneToOne
@@ -66,7 +79,7 @@ public class Event {
     private boolean requestModeration;
 
     @Column(name = "state")
-    private State state;
+    private State state = PENDING;
 
     @Column(name = "title")
     private String title;
@@ -74,30 +87,12 @@ public class Event {
     @Column(name = "views")
     private Long views;
 
-    public Event(Long id, String annotation, Category category, Long confirmedRequests,
-                 LocalDateTime createdOn, String description, LocalDateTime eventDate, User initiator,
-                 float locationLat, float locationLong, boolean paid, Integer participantLimit,
-                 LocalDateTime publishedOn, boolean requestModeration, State state, String title,
-                 Long views) {
-        this.id = id;
-        this.annotation = annotation;
-        this.category = category;
-        this.confirmedRequests = confirmedRequests;
-        this.createdOn = createdOn;
-        this.description = description;
-        this.eventDate = eventDate;
-        this.initiator = initiator;
-        this.locationLat = locationLat;
-        this.locationLong = locationLong;
-        this.paid = paid;
-        this.participantLimit = participantLimit;
-        this.publishedOn = publishedOn;
-        this.requestModeration = requestModeration;
-        this.state = state;
-        this.title = title;
-        this.views = views;
-    }
+    @JsonIgnore
+    @ManyToMany(mappedBy = "events")
+    private Set<Compilation> compilation;
 
-    public Event() {
+    @Override
+    public int hashCode() {
+        return Objects.hash(annotation, category.getName(), createdOn, eventDate, locationLat, locationLong);
     }
 }

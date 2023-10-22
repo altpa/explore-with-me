@@ -10,15 +10,27 @@ import ru.practicum.dto.category.CompilationDto;
 import ru.practicum.dto.event.EventFullDto;
 import ru.practicum.dto.category.NewCategoryDto;
 import ru.practicum.dto.complination.NewCompilationDto;
+import ru.practicum.dto.event.Location;
 import ru.practicum.dto.user.NewUserRequest;
 import ru.practicum.dto.complination.UpdateCompilationRequest;
 import ru.practicum.dto.event.UpdateEventAdminRequest;
 import ru.practicum.dto.user.UserDto;
 import ru.practicum.exception.BadRequestException;
+import ru.practicum.exception.ConflictException;
 import ru.practicum.exception.ObjectNotFoundException;
+import ru.practicum.model.Compilation;
+import ru.practicum.model.Event;
+import ru.practicum.model.State;
 import ru.practicum.repository.CategoryRepository;
+import ru.practicum.repository.CompilationRepository;
+import ru.practicum.repository.EventRepository;
 import ru.practicum.repository.UserRepository;
+import ru.practicum.service.priv.PrivateService;
 
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -29,7 +41,11 @@ import java.util.stream.Collectors;
 public class AdminServiceImpl implements AdminService {
     private final CategoryRepository categoryRepository;
     private final UserRepository userRepository;
+    private final EventRepository eventRepository;
+    private final CompilationRepository compilationRepository;
+    private final PrivateService privateService;
     private static final EwmMapper mapper = EwmMapper.INSTANCE;
+    private static final DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
     @Override
     public CategoryDto addCategory(NewCategoryDto newCategoryDto) {
@@ -70,15 +86,39 @@ public class AdminServiceImpl implements AdminService {
     }
 
     @Override
-    public Set<EventFullDto> getEvents(List<Integer> users, List<String> states,
+    public Set<EventFullDto> getEvents(List<Long> users, List<State> states,
                                        List<Long> categories, String rangeStart, String rangeEnd,
                                        int from, int size) {
-        return null;
+        log.debug("+ getEvents. users: {}, states: {}, categories: {}, rangeStart: {}, rangeEnd: {}, from={}, size={}",
+                users, states, categories, rangeStart, rangeEnd, from, size);
+
+        Set<EventFullDto> answer = eventRepository.getEventsByAdmin(users, states, categories,
+                        LocalDateTime.parse(rangeStart, formatter) , LocalDateTime.parse(rangeEnd, formatter),
+                        PageRequest.of(from, size))
+                            .stream().map(e -> {
+                                EventFullDto eventFullDto = mapper.toEventFullDto(e);
+                                eventFullDto.setLocation(new Location(e.getLocationLat(), e.getLocationLong()));
+                                return eventFullDto;
+                            }
+        ).collect(Collectors.toSet());
+        log.debug("- getEvents. answer: {}", answer);
+        return answer;
     }
 
     @Override
     public EventFullDto updateEvent(long eventId, UpdateEventAdminRequest updateEventAdminRequest) {
-        return null;
+        log.debug("+ updateEvent. eventId = {}. updateEventAdminRequest: {}",
+                eventId, updateEventAdminRequest);
+        privateService.checkEventExist(eventId);
+
+        Event event = eventRepository.findById(eventId).orElseThrow(ConflictException::new);
+        event = privateService.prepareEventForUpdate(event, updateEventAdminRequest);
+
+        event = eventRepository.save(event).get();
+        log.debug("+ updateEventByUserIdAndEventId. event: {}", event);
+        EventFullDto answer = mapper.toEventFullDto(event);
+        log.debug("- updateEventByUserIdAndEventId. answer: {}", answer);
+        return answer;
     }
 
     @Override
@@ -112,16 +152,67 @@ public class AdminServiceImpl implements AdminService {
 
     @Override
     public CompilationDto addCompilation(NewCompilationDto newCompilationDto) {
-        return null;
+        log.debug("+ addCompilation. newCompilationDto: {}", newCompilationDto);
+        Set<Event> events = eventRepository.findAllById(newCompilationDto.getEvents()).toSet();
+        Compilation compilation = mapper.toModel(newCompilationDto);
+        compilation.setEvents(events);
+
+        CompilationDto answer = mapper.toCompilationDto(compilationRepository.save(compilation).get());
+        log.debug("- addCompilation. answer: {}", answer);
+        return answer;
     }
 
     @Override
-    public void deleteCompilation(long compId) {
+    public long deleteCompilation(long compId) {
+        log.debug("+ deleteCompilation. compId = {}", compId);
+        checkCompilation(compId);
+        compilationRepository.deleteById(compId);
+        log.debug("- deleteCompilation. deletedId = {}", compId);
 
+        return compId;
     }
 
     @Override
-    public EventFullDto updateEvent(long compId, UpdateCompilationRequest updateCompilationRequest) {
-        return null;
+    public CompilationDto updateCompilations(long compId, UpdateCompilationRequest updateCompilationRequest) {
+        log.debug("+ updateCompilations. compId = {}, updateCompilationRequest: {}", compId, updateCompilationRequest);
+        checkCompilation(compId);
+        Compilation compilation = compilationRepository.findById(compId).get();
+        log.debug("+ updateCompilations. compilation: {}", compilation);
+
+        if (updateCompilationRequest.getEvents() != null) {
+            if (updateCompilationRequest.getEvents().isEmpty()) {
+                compilation.setEvents(Collections.emptySet());
+            } else {
+                Set<Event> events = new HashSet<>(eventRepository.findAllById(updateCompilationRequest.getEvents()).toList());
+                log.debug("+ updateCompilations. events: {}", events);
+                compilation.setEvents(events);
+            }
+        }
+        if (updateCompilationRequest.getTitle() != null) {
+            compilation.setTitle(updateCompilationRequest.getTitle());
+        }
+        if (updateCompilationRequest.isPinned()) {
+            compilation.setPinned(true);
+        }
+        if (!updateCompilationRequest.isPinned()) {
+            compilation.setPinned(false);
+        }
+        log.debug("+ updateCompilations. compilation: {}", compilation);
+        compilation = compilationRepository.save(compilation).get();
+        log.debug("+ updateCompilations. compilation: {}", compilation);
+
+        CompilationDto answer = mapper.toCompilationDto(compilation);
+        log.debug("- updateCompilations. answer: {}", answer);
+
+        return answer;
+    }
+
+    @Override
+    public void checkCompilation(long compId) {
+        log.debug("+ checkCompilation. compId = {}", compId);
+        if (!compilationRepository.existsById(compId)) {
+            throw new ObjectNotFoundException("Compilation id = " + compId + " not found");
+        }
+        log.debug("- checkCompilation. Pass compId = {}", compId);
     }
 }
