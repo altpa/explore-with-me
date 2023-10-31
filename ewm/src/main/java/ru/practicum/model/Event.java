@@ -41,7 +41,7 @@ public class Event {
     private Category category;
 
     @Column(name = "confirmed_requests")
-    private Long confirmedRequests;
+    private Long confirmedRequests = 0L;
 
     @Column(name = "created_on")
     @JsonFormat(pattern = DATE_PATTERN)
@@ -85,7 +85,7 @@ public class Event {
     private String title;
 
     @Column(name = "views")
-    private Long views;
+    private Long views = 0L;
 
     @JsonIgnore
     @ManyToMany(mappedBy = "events")

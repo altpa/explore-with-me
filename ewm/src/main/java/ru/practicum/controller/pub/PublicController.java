@@ -13,6 +13,7 @@ import ru.practicum.dto.event.EventFullDto;
 import ru.practicum.dto.event.EventShortDto;
 import ru.practicum.service.pub.PublicService;
 
+import javax.servlet.http.HttpServletRequest;
 import java.util.List;
 import java.util.Set;
 
@@ -66,25 +67,30 @@ public class PublicController {
     @GetMapping("/events")
     public Set<EventShortDto> getEvents(@RequestParam(required = false) String text,
                                         @RequestParam(required = false) List<Long> categories,
-                                        @RequestParam(required = false) boolean paid,
+                                        @RequestParam(required = false) Boolean paid,
                                         @RequestParam(required = false) String rangeStart,
                                         @RequestParam(required = false) String rangeEnd,
-                                        @RequestParam(defaultValue = "false") boolean onlyAvailable,
-                                        @RequestParam(defaultValue = "0") String sort,
+                                        @RequestParam(defaultValue = "false") Boolean onlyAvailable,
+                                        @RequestParam(defaultValue = "EVENT_DATE") String sort,
                                         @RequestParam(defaultValue = "0") int from,
-                                     @RequestParam(defaultValue = "10") int size) {
+                                        @RequestParam(defaultValue = "10") int size,
+                                        HttpServletRequest request) {
         log.debug("+ getEvents. text = {}, categories = {}, paid = {}, rangeStart={}, rangeEnd = {}, " +
-                "onlyAvailable = {}, sort = {}, from = {}, size = {}",
-                text, categories, paid, rangeStart, rangeEnd, onlyAvailable, sort, from, size);
+                "onlyAvailable = {}, sort = {}, from = {}, size = {}, ipAddress = {}",
+                text, categories, paid, rangeStart, rangeEnd, onlyAvailable, sort, from, size, request.getRemoteAddr());
         Set<EventShortDto> answer = pubService.getEvents(text, categories, paid, rangeStart, rangeEnd, onlyAvailable,
-                sort, from, size);
+                sort, from, size, request.getRemoteAddr());
         log.debug("- getEvents. answer = {}", answer);
+
         return answer;
     }
 
-    @GetMapping("/events/{id}")
-    public EventFullDto getEventById(@PathVariable long id) {
+    @GetMapping("/events/{eventId}")
+    public EventFullDto getEventById(@PathVariable long eventId, HttpServletRequest request) {
+        log.debug("+ getEventById. catId = {}, ipAddress = {}", eventId, request.getRemoteAddr());
+        EventFullDto answer = pubService.getEventById(eventId, request.getRemoteAddr());
+        log.debug("- getEvents. answer = {}", answer);
 
-        return null;
+        return answer;
     }
 }

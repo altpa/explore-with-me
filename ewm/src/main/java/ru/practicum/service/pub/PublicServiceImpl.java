@@ -4,28 +4,31 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
+import ru.practicum.HitDto;
 import ru.practicum.dto.EwmMapper;
 import ru.practicum.dto.category.CategoryDto;
 import ru.practicum.dto.category.CompilationDto;
 import ru.practicum.dto.event.EventFullDto;
 import ru.practicum.dto.event.EventShortDto;
+import ru.practicum.exception.BadRequestException;
 import ru.practicum.exception.ObjectNotFoundException;
 import ru.practicum.model.Category;
 import ru.practicum.model.Compilation;
 import ru.practicum.model.Event;
+import ru.practicum.model.UniIp;
 import ru.practicum.repository.CategoryRepository;
 import ru.practicum.repository.CompilationRepository;
 import ru.practicum.repository.EventRepository;
+import ru.practicum.repository.IpRepository;
 import ru.practicum.service.admin.AdminService;
+import ru.practicum.service.stats.MainStatsService;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
-import java.util.TreeSet;
-import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -35,12 +38,13 @@ public class PublicServiceImpl implements PublicService {
     private static final EwmMapper mapper = EwmMapper.INSTANCE;
     private static final DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
-
     private final CategoryRepository categoryRepository;
     private final CompilationRepository compilationRepository;
     private final EventRepository eventRepository;
+    private final IpRepository ipRepository;
 
     private final AdminService adminService;
+    private final MainStatsService mainStatsService;
 
     @Override
     public Set<CompilationDto> getCompilations(boolean pinned, int from, int size) {
@@ -90,45 +94,50 @@ public class PublicServiceImpl implements PublicService {
     }
 
     @Override
-    public Set<EventShortDto> getEvents(String text, List<Long> categories, boolean paid,
-                                        String rangeStart, String rangeEnd, boolean onlyAvailable,
-                                        String sort, int from, int size) {
+    public Set<EventShortDto> getEvents(String text, List<Long> categories, Boolean paid,
+                                        String rangeStart, String rangeEnd, Boolean onlyAvailable,
+                                        String sort, Integer from, Integer size, String ipAddress) {
         log.debug("+ getEvents. text = {}, categories = {}, paid = {}, rangeStart={}, rangeEnd = {}, " +
-                        "onlyAvailable = {}, sort = {}, from = {}, size = {}",
-                text, categories, paid, rangeStart, rangeEnd, onlyAvailable, sort, from, size);
-        PageRequest pageRequest = PageRequest.of(from, size);
-        TreeSet<Event> events;
+                        "onlyAvailable = {}, sort = {}, from = {}, size = {}, ipAddress = {}",
+                text, categories, paid, rangeStart, rangeEnd, onlyAvailable, sort, from, size, ipAddress);
+        PageRequest pageRequest;
+        Set<Event> events;
         String sortByDate = "EVENT_DATE";
-        String sortByViews = "VIEWS";
-        Comparator<Event> comparator;
-        LocalDateTime start = null;
-        LocalDateTime end = null;
+        LocalDateTime start = (rangeStart != null) ? LocalDateTime.parse(rangeStart, formatter) : null;
+        LocalDateTime end = (rangeEnd != null) ? LocalDateTime.parse(rangeEnd, formatter) : null;
+
+        if (start != null && end != null){
+            if (LocalDateTime.parse(rangeStart, formatter).isAfter(LocalDateTime.parse(rangeEnd, formatter))) {
+                throw new BadRequestException("rangeStart must be before rangeEnd");
+            }
+        }
 
         if (sort.equals(sortByDate)) {
-            comparator = Comparator.comparing(Event::getEventDate);
+            pageRequest = PageRequest.of(from, size, Sort.Direction.DESC, "eventDate");
         } else {
-            comparator = Comparator.comparing(Event::getViews);
+            pageRequest = PageRequest.of(from, size, Sort.Direction.DESC, "views");
         }
-        Supplier<TreeSet<Event>> event = () -> new TreeSet<Event>(comparator);
 
         if (text == null && categories == null && rangeStart == null && rangeEnd == null) {
-            events = eventRepository.findAll(pageRequest).stream().collect(Collectors.toCollection(event));
+            events = eventRepository.findAll(pageRequest).stream().collect(Collectors.toSet());
         } else {
-
-            if (rangeStart != null) {
-                start = LocalDateTime.parse(rangeStart, formatter);
-            }
-            if (rangeEnd != null) {
-                end = LocalDateTime.parse(rangeEnd, formatter);
-            }
-
 
             if (onlyAvailable) {
                 events = eventRepository.getEventsOnlyAvailable(text, categories, paid,
-                        start, end, pageRequest).stream().collect(Collectors.toCollection(event));
+                        start, end, pageRequest).stream().map(e -> {
+//                    mainStatsService.addHit(new HitDto("EWM", "/events/", ipAddress));
+//                    return increaseViews(ipAddress, e);
+                    return addHitAndUpdateViews(ipAddress, e);
+                }).collect(Collectors.toSet());
             } else {
+                log.debug(eventRepository.getEventsNotOnlyAvailable(text, categories, paid,
+                        start, end, pageRequest).getContent().toString());
                 events = eventRepository.getEventsNotOnlyAvailable(text, categories, paid,
-                        start, end, pageRequest).stream().collect(Collectors.toCollection(event));
+                        start, end, pageRequest).stream().map(e -> {
+//                    mainStatsService.addHit(new HitDto("EWM", "/events/", ipAddress));
+//                    return increaseViews(ipAddress, e);
+                    return addHitAndUpdateViews(ipAddress, e);
+                }).collect(Collectors.toSet());
             }
         }
 
@@ -139,8 +148,42 @@ public class PublicServiceImpl implements PublicService {
         return answer;
     }
 
+    private Event addHitAndUpdateViews(String ipAddress, Event e) {
+        mainStatsService.addHit(new HitDto("EWM", "/events/", ipAddress));
+        return increaseViews(ipAddress, e);
+    }
+
     @Override
-    public EventFullDto getEventById(long id) {
-        return null;
+    public EventFullDto getEventById(long eventId, String ipAddress) {
+        log.debug("+ getEventById. eventId = {}, ipAddress = {}", eventId, ipAddress);
+        Event event = eventRepository.findPublishedById(eventId)
+                .orElseThrow(() -> new ObjectNotFoundException("published event not found. eventId = " + eventId));
+
+        event = increaseViews(ipAddress, event);
+        mainStatsService.addHit(new HitDto("EWM", "/events/" + eventId, ipAddress));
+
+        EventFullDto answer = mapper.toEventFullDto(event);
+        log.debug("- getEvents. answer = {}", answer);
+
+        return answer;
+    }
+
+    private Event increaseViews(String ipAddress, Event event) {
+        if (!ipRepository.existsByIpAddressAndEventId(ipAddress, event.getId())) {
+            log.debug("ipAddress = {} is unique", ipAddress);
+            UniIp uniIp = new UniIp();
+            uniIp.setIpAddress(ipAddress);
+            uniIp.setEvent(event);
+            ipRepository.save(uniIp);
+
+            event.setViews(event.getViews() + 1);
+            eventRepository.save(event);
+//            eventRepository.increaseViewsById(event.getId());
+            log.debug("eventId = {} increased views = {}", event.getId(), event.getViews());
+            return event;
+        }
+        log.debug("ipAddress = {} not unique", ipAddress);
+
+        return event;
     }
 }

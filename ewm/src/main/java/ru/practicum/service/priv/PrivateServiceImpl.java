@@ -20,7 +20,6 @@ import ru.practicum.exception.ObjectNotFoundException;
 import ru.practicum.model.Event;
 import ru.practicum.model.Request;
 import ru.practicum.model.State;
-import ru.practicum.model.StateAction;
 import ru.practicum.repository.CategoryRepository;
 import ru.practicum.repository.EventRepository;
 import ru.practicum.repository.RequestRepository;
@@ -38,6 +37,10 @@ import static ru.practicum.model.State.CANCELED;
 import static ru.practicum.model.State.CONFIRMED;
 import static ru.practicum.model.State.PENDING;
 import static ru.practicum.model.State.PUBLISHED;
+import static ru.practicum.model.State.REJECTED;
+import static ru.practicum.model.StateAction.CANCEL_REVIEW;
+import static ru.practicum.model.StateAction.PUBLISH_EVENT;
+import static ru.practicum.model.StateAction.REJECT_EVENT;
 
 @Slf4j
 @Service
@@ -85,7 +88,7 @@ public class PrivateServiceImpl implements PrivateService {
         checkUserExist(userId);
         checkEventExist(eventId);
 
-        Event event = eventRepository.findByIdAndInitiatorId(userId, eventId).get();
+        Event event = eventRepository.findByIdAndInitiator(eventId, userId).get();
         log.debug("+ getEventByEventIdAndUserId. event: {}", event);
         EventFullDto answer = setLocationToEventFullDto(mapper.toEventFullDto(event), event);
         log.debug("- getEventByEventIdAndUserId. answer: {}", answer);
@@ -100,7 +103,10 @@ public class PrivateServiceImpl implements PrivateService {
                 userId, eventId, updateEventUserRequest);
 
         checkUserAndEventExist(userId, eventId);
-        Event event = eventRepository.findByIdAndStatus(eventId).get();
+        if (eventRepository.findById(eventId).get().getState().equals(PUBLISHED)) {
+            throw new ConflictException("eventId = " + eventId + " already published cant change from userId" + userId);
+        }
+        Event event = eventRepository.findPendingOrCanceledById(eventId).get();
 
         event = prepareEventForUpdate(event, updateEventUserRequest);
         event = eventRepository.save(event).get();
@@ -126,14 +132,20 @@ public class PrivateServiceImpl implements PrivateService {
                                           EventRequestStatusUpdateRequest eventRequestStatusUpdateRequest) {
         log.debug("+ changeRequestStatusByUserIdAndEventId. userId={}, eventId={}, eventRequestStatusUpdateRequest: {}",
                 userId, eventId, eventRequestStatusUpdateRequest);
-        checkUserAndEventExist(userId, eventId);
-        Event event = eventRepository.findById(eventId).get();
+
+        checkUserExist(userId);
+
+        Event event = eventRepository.findById(eventId)
+                .orElseThrow(() -> new ObjectNotFoundException("eventId = " + eventId + "not found"));
         checkEventRequestsLimit(event);
+
         List<Long> ids = eventRequestStatusUpdateRequest.getRequestIds();
         int requestsQuantity = eventRequestStatusUpdateRequest.getRequestIds().size();
         State status = eventRequestStatusUpdateRequest.getStatus();
-        Set<Request> requests = requestRepository.findAllByIdAndRequesterAndEventId(ids, userId, eventId).toSet();
+
+        Set<Request> requests = requestRepository.findByIdIn(ids).toSet();
         checkRequestStatus(requests);
+        log.debug("+ changeRequestStatusByUserIdAndEventId. requests: {}", requests);
 
         EventRequestStatusUpdateResult answer = getEventRequestStatusUpdateResult(status, requests, event, requestsQuantity);
         log.debug("- changeRequestStatusByUserIdAndEventId. answer:{}", answer);
@@ -152,12 +164,13 @@ public class PrivateServiceImpl implements PrivateService {
     private void checkEventRequestsLimit(Event event) {
         log.debug("+ checkEventLimit. event: {}", event);
         long limit = event.getParticipantLimit();
-        long requests = event.getConfirmedRequests();
+//        long requestsCount = (event.getConfirmedRequests() == null) ? 0 : event.getConfirmedRequests();
+        long requestsCount = requestRepository.countConfirmedByEventId(event.getId());
         boolean requestModeration = event.isRequestModeration();
-        log.debug("+ checkEventLimit. limit = {}, requests = {}, requestModeration = {}",
-                limit, requests, requestModeration);
-        if (limit == requests) {
-            throw new ConflictException("Participant limit is out. limit = " + limit + ", requests = " + requests);
+        log.debug("+ checkEventLimit. limit = {}, requestsCount = {}, requestModeration = {}",
+                limit, requestsCount, requestModeration);
+        if (limit <= requestsCount && requestModeration) {
+            throw new ConflictException("Participant limit is out. limit = " + limit + ", requestsCount = " + requestsCount);
         }
         if (!requestModeration) {
             throw new ConflictException("No request moderation needed");
@@ -168,23 +181,37 @@ public class PrivateServiceImpl implements PrivateService {
                                                                              Set<Request> requests,
                                                                              Event event,
                                                                              int requestsQuantity) {
-        log.debug("-+ getEventRequestStatusUpdateResult. status = {}. requests: {}. event: {}. requestsQuantity = {}",
+        log.debug("+ getEventRequestStatusUpdateResult. status = {}. requests: {}. event: {}. requestsQuantity = {}",
                 status, requests, event, requestsQuantity);
+
         Set<ParticipationRequestDto> confirmedRequests = new HashSet<>(emptySet());
         Set<ParticipationRequestDto> rejectedRequests = new HashSet<>(emptySet());
+
         for (Request request : requests) {
+            long confirmedRequestsCount = (event.getConfirmedRequests() == null) ? 0 : event.getConfirmedRequests();
+            log.debug("+ getEventRequestStatusUpdateResult. confirmedRequestsCount = {}, participantLimit() = {}, " +
+                            "request: {}",
+                    confirmedRequestsCount, event.getParticipantLimit(), request);
             if (request.getStatus().equals(PENDING)
-                    && event.getParticipantLimit() >= event.getConfirmedRequests()
+                    && event.getParticipantLimit() >= confirmedRequestsCount
                     && status.equals(CONFIRMED)) {
-                event.setConfirmedRequests(event.getConfirmedRequests() + requestsQuantity);
+                request.setStatus(CONFIRMED);
+                requestRepository.save(request);
+                event.setConfirmedRequests(confirmedRequestsCount + 1);
                 confirmedRequests.add(mapper.toParticipationRequestDto(request));
+                log.debug("+ getEventRequestStatusUpdateResult. confirmedRequests. request: {}", request);
             } else {
+                request.setStatus(REJECTED);
+                requestRepository.save(request);
                 rejectedRequests.add(mapper.toParticipationRequestDto(request));
+                log.debug("+ getEventRequestStatusUpdateResult. rejectedRequests. request: {}", request);
             }
         }
+        log.debug("+ getEventRequestStatusUpdateResult. event: {}", event);
         Event changedEvent = eventRepository.save(event).get();
-        EventRequestStatusUpdateResult eventRequestStatusUpdateResult =
-                new EventRequestStatusUpdateResult(confirmedRequests, rejectedRequests);
+        EventRequestStatusUpdateResult eventRequestStatusUpdateResult = new EventRequestStatusUpdateResult();
+        eventRequestStatusUpdateResult.setConfirmedRequests(confirmedRequests);
+        eventRequestStatusUpdateResult.setRejectedRequests(rejectedRequests);
         log.debug("- getEventRequestStatusUpdateResult. eventRequestStatusUpdateResult: {}, changedEvent: {}",
                 eventRequestStatusUpdateResult, changedEvent);
 
@@ -197,19 +224,39 @@ public class PrivateServiceImpl implements PrivateService {
         Set<ParticipationRequestDto> answer = requestRepository.findByUserId(userId)
                 .stream().map(mapper::toParticipationRequestDto).collect(Collectors.toSet());
         log.debug("- getRequestsByUserId. answer:{}", answer);
+
         return answer;
     }
 
     @Override
     public ParticipationRequestDto addRequestByUserId(long userId, long eventId) {
         log.debug("+ addRequestByUserId. userId = {}, eventId = {}", userId, eventId);
+        if (requestRepository.existsByEventIdAndRequesterId(eventId, userId)) {
+            throw new ConflictException("userId = " + userId + " already have request to eventId = " + eventId);
+        }
         checkUserAndEventExist(userId, eventId);
         Request request = new Request();
-        request.setEvent(eventRepository.findById(eventId).get());
-        request.setRequester(userRepository.findById(userId).get());
+        Event event = eventRepository.findById(eventId).get();
+        log.debug("participantLimit() = {}, requests = {}, requestModeration = {}",
+                event.getParticipantLimit(), requestRepository.countByEventId(eventId), event.isRequestModeration());
+        if (userId == event.getInitiator().getId()) {
+            throw new ConflictException("userId = " + userId + " initiator of eventId = " + eventId);
+        }
+        if (!event.getState().equals(PUBLISHED)) {
+            throw new ConflictException("eventId = " + eventId + " not published");
+        }
+        if (event.getParticipantLimit() <= requestRepository.countByEventId(eventId) && !event.isRequestModeration()) {
+            throw new ConflictException("eventId = " + eventId + " participantLimit is full");
+        }
+        request.setEvent(event);
+        if (event.getParticipantLimit() == 0) {
+            request.setStatus(CONFIRMED);
+        }
         log.debug("+ addRequestByUserId. request: {}", request);
+        request.setRequester(userRepository.findById(userId).get());
         ParticipationRequestDto answer = mapper.toParticipationRequestDto(requestRepository.save(request).get());
         log.debug("- addRequestByUserId. answer: {}", answer);
+
         return answer;
     }
 
@@ -218,9 +265,9 @@ public class PrivateServiceImpl implements PrivateService {
         log.debug("+ cancelRequestToEventIdByUserId. userId = {}, eventId = {}", userId, eventId);
         checkUserAndEventExist(userId, eventId);
         Request request = requestRepository.findByRequesterAndEventId(userId, eventId).get();
-        request.setStatus(PENDING);
+        request.setStatus(CANCELED);
         ParticipationRequestDto answer = mapper.toParticipationRequestDto(requestRepository.save(request).get());
-        log.debug("- addRequestByUserId. answer: {}", answer);
+        log.debug("- cancelRequestToEventIdByUserId. answer: {}", answer);
 
         return answer;
     }
@@ -251,6 +298,7 @@ public class PrivateServiceImpl implements PrivateService {
         checkEventExist(eventId);
         log.debug("-checkUserAndEventExist. Pass. userId = {}, eventId = {}", userId, eventId);
     }
+
     @Override
     public void checkEventExist(long eventId) {
         log.debug("+checkEventExist. eventId = " + eventId);
@@ -276,6 +324,9 @@ public class PrivateServiceImpl implements PrivateService {
     @Override
     public  <T extends UpdateEventRequest> Event prepareEventForUpdate(Event event, T o) {
         log.debug("+ prepareEventForUpdate. event: {}, o: {}", event, o);
+        if (event.getState().equals(PUBLISHED)) {
+            throw new ConflictException("eventId = " + event.getId() + "already published");
+        }
         if (o.getAnnotation() != null) {
             event.setAnnotation(o.getAnnotation());
         }
@@ -292,28 +343,35 @@ public class PrivateServiceImpl implements PrivateService {
             event.setLocationLat(o.getLocation().getLat());
             event.setLocationLong(o.getLocation().getLon());
         }
-        if (o.isPaid()) {
-            event.setPaid(true);
+        if (o.getPaid() != null) {
+            event.setPaid(o.getPaid());
         }
         if (o.getParticipantLimit() != null) {
             event.setParticipantLimit(o.getParticipantLimit());
         }
-        if (o.isRequestModeration()) {
-            event.setRequestModeration(true);
+        if (o.getRequestModeration() != null) {
+            event.setRequestModeration(o.getRequestModeration());
         }
         if (o.getStateAction() != null) {
-            if (o.getStateAction().equals(StateAction.PUBLISH_EVENT.toString())) {
+            if (o.getStateAction().equals(PUBLISH_EVENT.toString())) {
+                if (event.getState().equals(CANCELED)) {
+                    throw new ConflictException("eventId = " + event.getId() + " is canceled");
+                }
                 event.setState(PUBLISHED);
-            } else if (o.getStateAction().equals(StateAction.CANCEL_REVIEW.toString())) {
+                event.setPublishedOn(LocalDateTime.now());
+            } else if (o.getStateAction().equals(CANCEL_REVIEW.toString())) {
+                event.setState(CANCELED);
+            } else if (o.getStateAction().equals(REJECT_EVENT.toString())) {
                 event.setState(CANCELED);
             } else {
-                event.setState(PENDING);
-            }
+                    event.setState(PENDING);
+                }
         }
         if (o.getTitle() != null) {
             event.setTitle(o.getTitle());
         }
         log.debug("- prepareEventForUpdate. event: {}", event);
+
         return event;
     }
 }

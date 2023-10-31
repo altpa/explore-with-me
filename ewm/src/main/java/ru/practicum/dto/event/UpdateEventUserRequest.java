@@ -29,13 +29,13 @@ public class UpdateEventUserRequest extends UpdateEventRequest{
 
     private Location location;
 
-    private boolean paid;
+    private Boolean paid;
 
     @Positive
     @Nullable
     private Integer participantLimit;
 
-    private boolean requestModeration;
+    private Boolean requestModeration;
 
     private String stateAction;
 

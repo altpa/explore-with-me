@@ -133,11 +133,11 @@ public class PrivateController {
         return answer;
     }
 
-    @PatchMapping("{userId}/requests")
+    @PatchMapping("{userId}/requests/{requestId}/cancel")
     public ParticipationRequestDto cancelRequestToEventIdByUserId(@PathVariable long userId,
-                                                                  @RequestParam long eventId) {
-        log.debug("+ cancelRequestToEventIdByUserId. userId={}, eventId={}", userId, eventId);
-        ParticipationRequestDto answer = privateService.cancelRequestToEventIdByUserId(userId, eventId);
+                                                                  @PathVariable long requestId) {
+        log.debug("+ cancelRequestToEventIdByUserId. userId={}, eventId={}", userId, requestId);
+        ParticipationRequestDto answer = privateService.cancelRequestToEventIdByUserId(userId, requestId);
         log.debug("- cancelRequestToEventIdByUserId. answer={}", answer);
 
         return answer;

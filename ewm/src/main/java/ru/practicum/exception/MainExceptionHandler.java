@@ -111,7 +111,6 @@ public class MainExceptionHandler extends ResponseEntityExceptionHandler {
         return new ResponseEntity<>(apiError, new HttpHeaders(), apiError.getStatus());
     }
 
-
 	@ExceptionHandler({ ConstraintViolationException.class })
 	public ResponseEntity<ApiError> handleConstraintViolation(ConstraintViolationException ex) {
 		List<String> errors = new ArrayList<>();

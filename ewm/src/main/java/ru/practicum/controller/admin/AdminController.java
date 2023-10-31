@@ -71,11 +71,11 @@ public class AdminController {
 
     @GetMapping("/events")
     @ResponseStatus(OK)
-    public Set<EventFullDto> getEvents(@RequestParam List<Long> users,
-                                       @RequestParam List<State> states,
-                                       @RequestParam List<Long> categories,
-                                       @RequestParam String rangeStart,
-                                       @RequestParam String rangeEnd,
+    public Set<EventFullDto> getEvents(@RequestParam(required = false) List<Long> users,
+                                       @RequestParam(required = false) List<State> states,
+                                       @RequestParam(required = false) List<Long> categories,
+                                       @RequestParam(required = false) String rangeStart,
+                                       @RequestParam(required = false) String rangeEnd,
                                        @RequestParam(defaultValue = "0") int from,
                                        @RequestParam(defaultValue = "10") int size) {
 

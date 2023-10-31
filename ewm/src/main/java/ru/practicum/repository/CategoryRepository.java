@@ -23,4 +23,6 @@ public interface CategoryRepository extends Repository<Category, Long> {
     boolean existsByName(String name);
 
     Page<Category> findAll(Pageable pageable);
+
+    Optional<Category> findByName(String name);
 }

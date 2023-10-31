@@ -30,9 +30,12 @@ import ru.practicum.service.priv.PrivateService;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.TreeSet;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -56,7 +59,7 @@ public class AdminServiceImpl implements AdminService {
             log.debug("- addCategory. answer: {}", answer.toString());
             return answer;
         } else {
-            throw new BadRequestException("The name already exist");
+            throw new ConflictException("The name already exist");
         }
     }
 
@@ -64,6 +67,9 @@ public class AdminServiceImpl implements AdminService {
     public long deleteCategory(long catId) {
         log.debug("+ deleteCategory. catId: {}", catId);
         if (categoryRepository.existsById(catId)) {
+            if (eventRepository.existsByCategoryId(catId)) {
+                throw new ConflictException("catId = " + catId + " have events");
+            }
             categoryRepository.deleteById(catId);
             log.debug("- deleteCategory. deleted catId = {}", catId);
             return catId;
@@ -76,6 +82,10 @@ public class AdminServiceImpl implements AdminService {
     public CategoryDto updateCategory(long catId, CategoryDto categoryDto) {
         log.debug("+ updateCategory. catId: {}, categoryDto: {}", catId, categoryDto);
         if (categoryRepository.existsById(catId)) {
+            if (categoryRepository.existsByName(categoryDto.getName())
+                    && categoryRepository.findByName(categoryDto.getName()).get().getId() != catId) {
+                throw new ConflictException("name = " + categoryDto.getName() + " already exist");
+            }
             categoryDto.setId(catId);
             CategoryDto answer =  mapper.toCategoryDto(categoryRepository.save(mapper.toModel(categoryDto)).get());
             log.debug("- updateCategory. answer: {}", answer);
@@ -91,9 +101,16 @@ public class AdminServiceImpl implements AdminService {
                                        int from, int size) {
         log.debug("+ getEvents. users: {}, states: {}, categories: {}, rangeStart: {}, rangeEnd: {}, from={}, size={}",
                 users, states, categories, rangeStart, rangeEnd, from, size);
+        LocalDateTime start = (rangeStart != null) ? LocalDateTime.parse(rangeStart, formatter) : null;
+        LocalDateTime end = (rangeEnd != null) ? LocalDateTime.parse(rangeEnd, formatter) : null;
 
-        Set<EventFullDto> answer = eventRepository.getEventsByAdmin(users, states, categories,
-                        LocalDateTime.parse(rangeStart, formatter) , LocalDateTime.parse(rangeEnd, formatter),
+        if  (rangeStart != null && rangeEnd != null) {
+            if (start.isAfter(end)) {
+                throw new BadRequestException("rangeStart must be before rangeEnd");
+            }
+        }
+
+        Set<EventFullDto> answer = eventRepository.getEventsByAdmin(users, states, categories, start, end,
                         PageRequest.of(from, size))
                             .stream().map(e -> {
                                 EventFullDto eventFullDto = mapper.toEventFullDto(e);
@@ -102,6 +119,7 @@ public class AdminServiceImpl implements AdminService {
                             }
         ).collect(Collectors.toSet());
         log.debug("- getEvents. answer: {}", answer);
+
         return answer;
     }
 
@@ -111,7 +129,7 @@ public class AdminServiceImpl implements AdminService {
                 eventId, updateEventAdminRequest);
         privateService.checkEventExist(eventId);
 
-        Event event = eventRepository.findById(eventId).orElseThrow(ConflictException::new);
+        Event event = eventRepository.findById(eventId).get();
         event = privateService.prepareEventForUpdate(event, updateEventAdminRequest);
 
         event = eventRepository.save(event).get();
@@ -124,8 +142,12 @@ public class AdminServiceImpl implements AdminService {
     @Override
     public Set<UserDto> getUsers(List<Long> ids, int from, int size) {
         log.debug("+ getUsers. ids: {}. from = {}. size = {}", ids, from, size);
+        Comparator<UserDto> byId = Comparator.comparingLong(UserDto::getId);
+
+        Supplier<TreeSet<UserDto>> users = () -> new TreeSet<UserDto>(byId);
+
         Set<UserDto> answer = userRepository.findByIdIn(ids, PageRequest.of(from, size))
-                .stream().map(mapper::toUserDto).collect(Collectors.toSet());
+                .stream().map(mapper::toUserDto).collect(Collectors.toCollection(users));
         log.debug("- getUsers. answer: {}", answer);
         return answer;
     }
@@ -133,6 +155,9 @@ public class AdminServiceImpl implements AdminService {
     @Override
     public UserDto addUser(NewUserRequest newUserRequest) {
         log.debug("+ addUser. newUserRequest: {}", newUserRequest);
+        if (userRepository.existsByName(newUserRequest.getName())) {
+            throw new ConflictException("Name = " + newUserRequest.getName() + " already exist");
+        }
         UserDto answer =  mapper.toUserDto(userRepository.save(mapper.toModel(newUserRequest)).get());
         log.debug("- addUser. answer: {}", answer);
         return answer;

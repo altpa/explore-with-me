@@ -23,8 +23,9 @@ public interface PublicService {
 
     CategoryDto getCategoryById(@PathVariable long catId);
 
-    Set<EventShortDto> getEvents(String text, List<Long> categories, boolean paid, String rangeStart,
-                                 String rangeEnd, boolean onlyAvailable, String sort, int from, int size);
+    Set<EventShortDto> getEvents(String text, List<Long> categories, Boolean paid, String rangeStart,
+                                 String rangeEnd, Boolean onlyAvailable, String sort, Integer from, Integer size,
+                                 String ipAddress);
 
-    EventFullDto getEventById(long id);
+    EventFullDto getEventById(long id, String ipAddress);
 }

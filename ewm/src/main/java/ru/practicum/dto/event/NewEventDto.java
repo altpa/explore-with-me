@@ -35,13 +35,11 @@ public class NewEventDto {
     @NotNull(message = "location may not be blank")
     private Location location;
 
-    private boolean paid;
+    private boolean paid = false;
 
-    @Nullable
-    @Positive
-    private Integer participantLimit;
+    private Integer participantLimit = 0;
 
-    private boolean requestModeration;
+    private boolean requestModeration = true;
 
     @NotBlank(message = "title may not be blank")
     @Size(min = 3, max = 120)
