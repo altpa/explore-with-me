@@ -13,15 +13,14 @@ services:
       - SPRING_DRIVER_CLASS_NAME=$DRIVER_CLASS_NAME
       - POSTGRES_USER=$USER
       - POSTGRES_PASSWORD=$PASSWORD
-#      - STATS_SERVER_URL=$SERVER_URL
     deploy:
       resources:
         limits:
-          cpus: ${CPUS_LIMITS}
-          memory: ${MEMORY_LIMITS}
+          cpus: 2.00
+          memory: 1G
         reservations:
-          cpus: ${CPUS_RESERVATIONS}
-          memory: ${MEMORY_RESERVATIONS}
+          cpus: 1.00
+          memory: 512M
 
   ewm:
     build: ${EWM_BUILD}
@@ -40,11 +39,11 @@ services:
     deploy:
       resources:
         limits:
-          cpus: ${CPUS_LIMITS}
-          memory: ${MEMORY_LIMITS}
+          cpus: 2.00
+          memory: 1G
         reservations:
-          cpus: ${CPUS_RESERVATIONS}
-          memory: ${MEMORY_RESERVATIONS}
+          cpus: 1.00
+          memory: 512M
 
 
   ewm-db:
