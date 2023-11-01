@@ -1,10 +1,6 @@
 package ru.practicum.dto.event;
 
 import lombok.Data;
-import org.springframework.lang.Nullable;
-import ru.practicum.validation.EventDateAfterHours;
-
-import javax.validation.constraints.Size;
 
 @Data
 public class UpdateEventRequest {

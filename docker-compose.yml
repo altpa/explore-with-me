@@ -13,7 +13,7 @@ services:
       - SPRING_DRIVER_CLASS_NAME=$DRIVER_CLASS_NAME
       - POSTGRES_USER=$USER
       - POSTGRES_PASSWORD=$PASSWORD
-      - STATS_SERVER_URL=$SERVER_URL
+#      - STATS_SERVER_URL=$SERVER_URL
     deploy:
       resources:
         limits:
@@ -32,10 +32,11 @@ services:
     depends_on:
       - ewm-db
     environment:
-      - SPRING_DRIVER_CLASS_NAME=$DRIVER_CLASS_NAME
       - SPRING_DATASOURCE_URL=$EWM_DATASOURCE_URL
+      - SPRING_DRIVER_CLASS_NAME=$DRIVER_CLASS_NAME
       - POSTGRES_USER=$USER
       - POSTGRES_PASSWORD=$PASSWORD
+      - STATS_SERVER_URL=$SERVER_URL
     deploy:
       resources:
         limits:

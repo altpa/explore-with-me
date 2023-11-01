@@ -79,7 +79,7 @@ public class Event {
     private boolean requestModeration;
 
     @Column(name = "state")
-    private State state = PENDING;
+    private String state = PENDING.toString();
 
     @Column(name = "title")
     private String title;

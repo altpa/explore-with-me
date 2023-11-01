@@ -2,13 +2,10 @@ package ru.practicum.repository;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 import org.springframework.data.repository.Repository;
-import org.springframework.data.util.Streamable;
 import org.springframework.transaction.annotation.Transactional;
 import ru.practicum.model.Compilation;
-import ru.practicum.model.Event;
 
 import java.util.Optional;
 
@@ -22,5 +19,6 @@ public interface CompilationRepository extends Repository<Compilation, Long> {
     void deleteById(Long id);
 
     Optional<Compilation> findById(Long id);
+
     Page<Compilation> findByPinned(Boolean pinned, Pageable pageable);
 }

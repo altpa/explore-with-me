@@ -1,7 +1,6 @@
 package ru.practicum.dto.category;
 
 import lombok.Data;
-import lombok.NoArgsConstructor;
 import ru.practicum.dto.event.EventShortDto;
 
 import javax.validation.constraints.NotBlank;

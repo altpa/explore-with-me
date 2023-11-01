@@ -36,6 +36,6 @@ public interface PrivateService {
     ParticipationRequestDto addRequestByUserId(long userId, long eventId);
 
     ParticipationRequestDto cancelRequestToEventIdByUserId(long userId, long eventId);
-    void checkEventExist(long eventId);
+
     <T extends UpdateEventRequest> Event prepareEventForUpdate(Event event, T o);
     }

@@ -31,7 +31,10 @@ public interface RequestRepository extends Repository<Request, Long> {
 
     Boolean existsByEventIdAndRequesterId(Long eventId, Long userID);
 
-    @Query(value = "SELECT COUNT(*) FROM Request r WHERE r.event.id = ?1 AND r.status = ru.practicum.model.State.CONFIRMED")
+    @Query(value = "SELECT COUNT(*) FROM Request r WHERE r.event.id = ?1 AND r.status = 'CONFIRMED'")
     Long countConfirmedByEventId(Long eventId);
+
     Long countByEventId(Long eventId);
+
+    Boolean existsById(long requestId);
 }

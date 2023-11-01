@@ -1,19 +1,14 @@
 package ru.practicum.dto.event;
 
-import com.fasterxml.jackson.annotation.JsonFormat;
 import lombok.Data;
 import org.springframework.lang.Nullable;
 import ru.practicum.dto.category.CategoryDto;
 import ru.practicum.dto.user.UserShortDto;
-import ru.practicum.validation.EventDateAfterHours;
 
-import javax.validation.constraints.FutureOrPresent;
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Positive;
 import javax.validation.constraints.Size;
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 
 @Data
 public class EventFullDto {
@@ -27,7 +22,7 @@ public class EventFullDto {
 
     @Nullable
     @Positive
-    private Long confirmedRequests;
+    private Long confirmedRequests = 0L;
 
     @NotBlank(message = "createdOn may not be blank")
     private String createdOn;
@@ -66,5 +61,5 @@ public class EventFullDto {
 
     @Nullable
     @Positive
-    private Long views;
+    private Long views = 0L;
 }

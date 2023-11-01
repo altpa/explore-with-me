@@ -3,7 +3,7 @@ package ru.practicum.dto.event;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import org.springframework.lang.Nullable;
-import ru.practicum.validation.EventDateAfterHours;
+import ru.practicum.validation.eventDateValidator.EventDateAfterHours;
 
 import javax.validation.constraints.Size;
 
@@ -20,7 +20,7 @@ public class UpdateEventAdminRequest extends UpdateEventRequest {
     @Size(min = 20, max = 7000)
     private String description;
 
-    @EventDateAfterHours(hours=1)
+    @EventDateAfterHours(hours = 1)
     private String eventDate;
 
     private Location location;
@@ -32,7 +32,7 @@ public class UpdateEventAdminRequest extends UpdateEventRequest {
     private Boolean requestModeration;
 
     private String stateAction;
-    
+
     @Nullable
     @Size(min = 3, max = 120)
     private String title;

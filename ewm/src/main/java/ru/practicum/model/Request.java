@@ -2,7 +2,6 @@ package ru.practicum.model;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
 import lombok.Data;
-import lombok.ToString;
 
 import javax.persistence.Column;
 import javax.persistence.Entity;
@@ -35,7 +34,7 @@ public class Request {
     @JoinColumn(name = "requester")
     private User requester;
 
-    private State status = PENDING;
+    private String status = PENDING.toString();
 
     @JsonFormat(pattern = DATE_PATTERN)
     private LocalDateTime created = LocalDateTime.now();

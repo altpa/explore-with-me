@@ -4,7 +4,6 @@ import lombok.Data;
 import org.springframework.lang.Nullable;
 import ru.practicum.dto.category.CategoryDto;
 import ru.practicum.dto.user.UserShortDto;
-import ru.practicum.validation.EventDateAfterHours;
 
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
@@ -20,7 +19,7 @@ public class EventShortDto {
 
     @Nullable
     @Positive
-    private final Long confirmedRequests;
+    private final Long confirmedRequests = 0L;
 
     @NotBlank(message = "eventDate may not be blank")
     private final String eventDate;

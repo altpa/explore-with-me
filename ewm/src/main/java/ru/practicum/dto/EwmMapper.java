@@ -2,14 +2,11 @@ package ru.practicum.dto;
 
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
-import org.mapstruct.NullValueMappingStrategy;
-import org.mapstruct.NullValuePropertyMappingStrategy;
 import org.mapstruct.factory.Mappers;
 import ru.practicum.dto.category.CategoryDto;
 import ru.practicum.dto.category.CompilationDto;
 import ru.practicum.dto.category.NewCategoryDto;
 import ru.practicum.dto.complination.NewCompilationDto;
-import ru.practicum.dto.complination.UpdateCompilationRequest;
 import ru.practicum.dto.event.EventFullDto;
 import ru.practicum.dto.event.EventShortDto;
 import ru.practicum.dto.event.NewEventDto;
@@ -26,14 +23,19 @@ import ru.practicum.model.User;
 @Mapper
 public interface EwmMapper {
     String dateTimeFormat =  "yyyy-MM-dd HH:mm:ss";
+
     EwmMapper INSTANCE = Mappers.getMapper(EwmMapper.class);
 
     Category toModel(CategoryDto categoryDto);
+
     Category toModel(NewCategoryDto newCategoryDto);
+
     CategoryDto toCategoryDto(Category category);
 
     User toModel(NewUserRequest newUserRequest);
+
     UserDto toUserDto(User user);
+
     UserShortDto toUserShortDto(User user);
 
     @Mapping(ignore = true, target = "category")
@@ -42,6 +44,7 @@ public interface EwmMapper {
     @Mapping(ignore = true, target = "locationLong")
     @Mapping(source = "eventDate", target = "eventDate", dateFormat = dateTimeFormat)
     Event toModel(NewEventDto newEventDto);
+
     @Mapping(ignore = true, target = "location")
     @Mapping(source = "eventDate", target = "eventDate", dateFormat = dateTimeFormat)
     @Mapping(source = "createdOn", target = "createdOn", dateFormat = dateTimeFormat)
@@ -57,5 +60,6 @@ public interface EwmMapper {
 
     @Mapping(ignore = true, target = "events")
     Compilation toModel(NewCompilationDto newCompilationDto);
+
     CompilationDto toCompilationDto(Compilation compilation);
 }

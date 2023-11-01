@@ -10,7 +10,6 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.data.util.Streamable;
 import org.springframework.transaction.annotation.Transactional;
 import ru.practicum.model.Event;
-import ru.practicum.model.State;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -21,28 +20,32 @@ import java.util.Set;
 @Transactional
 public interface EventRepository extends Repository<Event, Long> {
     Optional<Event> save(Event event);
+
     boolean existsById(Long eventId);
+
     @Query(value = "SELECT e FROM Event e WHERE e.id = :eventId AND e.initiator.id = :userId")
     Optional<Event> findByIdAndInitiator(@Param("eventId")Long eventId, @Param("userId")Long userId);
+
     Page<Event> findByInitiatorId(Long userId, Pageable pageable);
+
     Optional<Event> findById(Long eventId);
 
     @Query(value = "SELECT e FROM Event e WHERE e.id in ?1")
     Streamable<Event> findAllById(Set<Long> id);
 
-    @Query(value = "SELECT e FROM Event e WHERE e.id = :eventId and (e.state = ru.practicum.model.State.PENDING " +
-            "or e.state = ru.practicum.model.State.CANCELED)")
+    @Query(value = "SELECT e FROM Event e WHERE e.id = :eventId and (e.state = 'PENDING' " +
+            "or e.state = 'CANCELED')")
     Optional<Event> findPendingOrCanceledById(@Param("eventId") Long eventId);
 
     @Query(value = "SELECT e FROM Event e WHERE " +
             ":users IS NULL OR e.initiator.id in :users " +
             "AND (:states is null or e.state in :states) " +
             "AND (:categories is null or e.category.id in :categories) " +
-            "AND (:rangeStart is null or e.eventDate >= :rangeStart)" +
-            "AND (:rangeEnd is null or e.eventDate <= :rangeEnd)"
+            "AND (cast(:rangeStart as date) is null or e.eventDate >= :rangeStart)" +
+            "AND (cast(:rangeEnd as date) is null or e.eventDate <= :rangeEnd)"
     )
     Page<Event> getEventsByAdmin(@Param("users") List<Long> users,
-                                 @Param("states") List<State> states,
+                                 @Param("states") List<String> states,
                                  @Param("categories") List<Long> categories,
                                  @Param("rangeStart") LocalDateTime rangeStart,
                                  @Param("rangeEnd") LocalDateTime rangeEnd,
@@ -52,8 +55,8 @@ public interface EventRepository extends Repository<Event, Long> {
             "((:text IS NULL OR e.annotation LIKE %:text%) OR (:text IS NULL OR e.description LIKE %:text%)) " +
             "AND (:categories IS NULL OR e.category.id IN :categories) " +
             "AND (:paid is null or e.paid = :paid) " +
-            "AND (:rangeStart is null or e.eventDate >= :rangeStart)" +
-            "AND (:rangeEnd is null or e.eventDate <= :rangeEnd)" +
+            "AND (cast(:rangeStart as date) is null or e.eventDate >= :rangeStart)" +
+            "AND (cast(:rangeEnd as date) is null or e.eventDate <= :rangeEnd)" +
             "AND (e.confirmedRequests is null or e.participantLimit >= e.confirmedRequests)")
     Page<Event> getEventsOnlyAvailable(@Param("text") String text,
                                        @Param("categories") List<Long> categories,
@@ -66,8 +69,8 @@ public interface EventRepository extends Repository<Event, Long> {
             "((:text IS NULL OR e.annotation LIKE %:text%) OR (:text IS NULL OR e.description LIKE %:text%)) " +
             "AND (:categories IS NULL OR e.category.id IN :categories) " +
             "AND (:paid is null or e.paid = :paid) " +
-            "AND (:rangeStart is null or e.eventDate >= :rangeStart)" +
-            "AND (:rangeEnd is null or e.eventDate <= :rangeEnd)")
+            "AND (cast(:rangeStart as date) is null or e.eventDate >= :rangeStart)" +
+            "AND (cast(:rangeEnd as date) is null or e.eventDate <= :rangeEnd)")
     Page<Event> getEventsNotOnlyAvailable(@Param("text") String text,
                                        @Param("categories") List<Long> categories,
                                        @Param("paid") Boolean paid,
@@ -81,7 +84,7 @@ public interface EventRepository extends Repository<Event, Long> {
 
     Page<Event> findAll(Pageable pageable);
 
-    @Query(value = "SELECT e FROM Event e WHERE e.id = :eventId AND e.state = ru.practicum.model.State.PUBLISHED")
+    @Query(value = "SELECT e FROM Event e WHERE e.id = :eventId AND e.state = 'PUBLISHED'")
     Optional<Event> findPublishedById(@Param("eventId") Long eventId);
 
     Boolean existsByCategoryId(Long catId);

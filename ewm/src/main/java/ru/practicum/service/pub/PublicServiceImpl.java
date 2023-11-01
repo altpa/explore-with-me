@@ -12,7 +12,6 @@ import ru.practicum.dto.category.CategoryDto;
 import ru.practicum.dto.category.CompilationDto;
 import ru.practicum.dto.event.EventFullDto;
 import ru.practicum.dto.event.EventShortDto;
-import ru.practicum.exception.BadRequestException;
 import ru.practicum.exception.ObjectNotFoundException;
 import ru.practicum.model.Category;
 import ru.practicum.model.Compilation;
@@ -24,6 +23,7 @@ import ru.practicum.repository.EventRepository;
 import ru.practicum.repository.IpRepository;
 import ru.practicum.service.admin.AdminService;
 import ru.practicum.service.stats.MainStatsService;
+import ru.practicum.validation.validations.Validations;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -46,6 +46,8 @@ public class PublicServiceImpl implements PublicService {
     private final AdminService adminService;
     private final MainStatsService mainStatsService;
 
+    private final Validations validations;
+
     @Override
     public Set<CompilationDto> getCompilations(boolean pinned, int from, int size) {
         log.debug("+ getCompilations. pinned = {}. from = {}, size = {}", pinned, from, size);
@@ -61,8 +63,8 @@ public class PublicServiceImpl implements PublicService {
     @Override
     public CompilationDto getCompilationById(long compId) {
         log.debug("+ getCompilationById. compId = {}", compId);
-        adminService.checkCompilation(compId);
-        Compilation compilation = compilationRepository.findById(compId).get();
+        Compilation compilation = compilationRepository.findById(compId)
+                .orElseThrow(() -> new ObjectNotFoundException("Compilation id = " + compId + " not found"));
         log.debug("+ getCompilationById. compilation events = {}", compilation.getEvents().size());
         CompilationDto answer = mapper.toCompilationDto(compilationRepository.findById(compId).get());
         log.debug("- getCompilationById. answer = {}", answer);
@@ -82,15 +84,13 @@ public class PublicServiceImpl implements PublicService {
 
     @Override
     public CategoryDto getCategoryById(long catId) {
-        if (categoryRepository.existsById(catId)) {
-            log.debug("+ getCategoryById. catId = {}", catId);
-            CategoryDto answer =  mapper.toCategoryDto(categoryRepository.findById(catId).get());
-            log.debug("- getCategoryById. answer = {}", answer);
+        log.debug("+ getCategoryById. catId = {}", catId);
+        Category category = categoryRepository.findById(catId)
+                .orElseThrow(() -> new ObjectNotFoundException("Category not found"));
+        CategoryDto answer =  mapper.toCategoryDto(category);
+        log.debug("- getCategoryById. answer = {}", answer);
 
-            return answer;
-        } else {
-            throw new ObjectNotFoundException("Category not found");
-        }
+        return answer;
     }
 
     @Override
@@ -103,14 +103,11 @@ public class PublicServiceImpl implements PublicService {
         PageRequest pageRequest;
         Set<Event> events;
         String sortByDate = "EVENT_DATE";
+
         LocalDateTime start = (rangeStart != null) ? LocalDateTime.parse(rangeStart, formatter) : null;
         LocalDateTime end = (rangeEnd != null) ? LocalDateTime.parse(rangeEnd, formatter) : null;
 
-        if (start != null && end != null){
-            if (LocalDateTime.parse(rangeStart, formatter).isAfter(LocalDateTime.parse(rangeEnd, formatter))) {
-                throw new BadRequestException("rangeStart must be before rangeEnd");
-            }
-        }
+        validations.checkStartEndTime(start, end);
 
         if (sort.equals(sortByDate)) {
             pageRequest = PageRequest.of(from, size, Sort.Direction.DESC, "eventDate");
@@ -124,20 +121,16 @@ public class PublicServiceImpl implements PublicService {
 
             if (onlyAvailable) {
                 events = eventRepository.getEventsOnlyAvailable(text, categories, paid,
-                        start, end, pageRequest).stream().map(e -> {
-//                    mainStatsService.addHit(new HitDto("EWM", "/events/", ipAddress));
-//                    return increaseViews(ipAddress, e);
-                    return addHitAndUpdateViews(ipAddress, e);
-                }).collect(Collectors.toSet());
+                        start, end, pageRequest).stream()
+                        .map(e -> addHitAndUpdateViews(ipAddress, e))
+                        .collect(Collectors.toSet());
             } else {
                 log.debug(eventRepository.getEventsNotOnlyAvailable(text, categories, paid,
                         start, end, pageRequest).getContent().toString());
                 events = eventRepository.getEventsNotOnlyAvailable(text, categories, paid,
-                        start, end, pageRequest).stream().map(e -> {
-//                    mainStatsService.addHit(new HitDto("EWM", "/events/", ipAddress));
-//                    return increaseViews(ipAddress, e);
-                    return addHitAndUpdateViews(ipAddress, e);
-                }).collect(Collectors.toSet());
+                        start, end, pageRequest).stream()
+                        .map(e -> addHitAndUpdateViews(ipAddress, e))
+                        .collect(Collectors.toSet());
             }
         }
 
@@ -178,7 +171,6 @@ public class PublicServiceImpl implements PublicService {
 
             event.setViews(event.getViews() + 1);
             eventRepository.save(event);
-//            eventRepository.increaseViewsById(event.getId());
             log.debug("eventId = {} increased views = {}", event.getId(), event.getViews());
             return event;
         }

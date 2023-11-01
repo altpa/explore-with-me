@@ -15,15 +15,15 @@ import ru.practicum.dto.event.NewEventDto;
 import ru.practicum.dto.event.ParticipationRequestDto;
 import ru.practicum.dto.event.UpdateEventRequest;
 import ru.practicum.dto.event.UpdateEventUserRequest;
-import ru.practicum.exception.ConflictException;
 import ru.practicum.exception.ObjectNotFoundException;
 import ru.practicum.model.Event;
 import ru.practicum.model.Request;
-import ru.practicum.model.State;
 import ru.practicum.repository.CategoryRepository;
 import ru.practicum.repository.EventRepository;
 import ru.practicum.repository.RequestRepository;
 import ru.practicum.repository.UserRepository;
+import ru.practicum.validation.conflicts.Conflicts;
+import ru.practicum.validation.validations.Validations;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -53,19 +53,24 @@ public class PrivateServiceImpl implements PrivateService {
     private final UserRepository userRepository;
     private final CategoryRepository categoryRepository;
     private final RequestRepository requestRepository;
+
+    private final Conflicts conflicts;
+    private final Validations validations;
+
     @Override
     public Set<EventShortDto> getEventsByUserId(long userId, int from, int size) {
         log.debug("+ getEventsByUserId. from = {}, size = {}", from, size);
         Page<Event> events = eventRepository.findByInitiatorId(userId, PageRequest.of(from, size));
         Set<EventShortDto> answer = events.stream().map(mapper::toEventShortDto).collect(Collectors.toSet());
         log.debug("- getEventsByUserId. answer = {}", answer);
+
         return answer;
     }
 
     @Override
     public EventFullDto addEventByUserId(long userId, NewEventDto newEventDto) {
         log.debug("+ addEventByUserId. userId: {}. newEventDto: {}", userId, newEventDto);
-        checkUserAndCategoryExist(userId, newEventDto.getCategory());
+        validations.checkUserAndCategoryExist(userId, newEventDto.getCategory());
 
         EventFullDto answer = mapper.toEventFullDto(eventRepository.save(prepareEventForSave(userId, newEventDto)).get());
         answer.setLocation(newEventDto.getLocation());
@@ -73,6 +78,7 @@ public class PrivateServiceImpl implements PrivateService {
 
         return answer;
     }
+
     private Event prepareEventForSave(long userId, NewEventDto newEventDto) {
         Event event = mapper.toModel(newEventDto);
         event.setCategory(categoryRepository.findById(newEventDto.getCategory()).get());
@@ -85,8 +91,7 @@ public class PrivateServiceImpl implements PrivateService {
     @Override
     public EventFullDto getEventByEventIdAndUserId(long userId, long eventId) {
         log.debug("+ getEventByEventIdAndUserId. userId: {}. eventId: {}", userId, eventId);
-        checkUserExist(userId);
-        checkEventExist(eventId);
+        validations.checkUserAndEventExist(userId, eventId);
 
         Event event = eventRepository.findByIdAndInitiator(eventId, userId).get();
         log.debug("+ getEventByEventIdAndUserId. event: {}", event);
@@ -102,17 +107,18 @@ public class PrivateServiceImpl implements PrivateService {
         log.debug("+ updateEventByUserIdAndEventId. userId = {}. eventId = {}. updateEventUserRequest: {}",
                 userId, eventId, updateEventUserRequest);
 
-        checkUserAndEventExist(userId, eventId);
-        if (eventRepository.findById(eventId).get().getState().equals(PUBLISHED)) {
-            throw new ConflictException("eventId = " + eventId + " already published cant change from userId" + userId);
-        }
-        Event event = eventRepository.findPendingOrCanceledById(eventId).get();
+        validations.checkUserAndEventExist(userId, eventId);
+        conflicts.checkEventPublished(eventId);
+
+        Event event = eventRepository.findPendingOrCanceledById(eventId)
+                .orElseThrow(() -> new ObjectNotFoundException("eventId = " + eventId + "not found"));
 
         event = prepareEventForUpdate(event, updateEventUserRequest);
         event = eventRepository.save(event).get();
         log.debug("+ updateEventByUserIdAndEventId. event: {}", event);
         EventFullDto answer = mapper.toEventFullDto(event);
         log.debug("- updateEventByUserIdAndEventId. answer: {}", answer);
+
         return answer;
     }
 
@@ -123,6 +129,7 @@ public class PrivateServiceImpl implements PrivateService {
                 requestRepository.findAllByRequesterAndEventId(userId, eventId)
                 .stream().map(mapper::toParticipationRequestDto).collect(Collectors.toSet());
         log.debug("- getRequestByUserIdAndEventId. answer:{}", answer);
+
         return answer;
     }
 
@@ -133,18 +140,18 @@ public class PrivateServiceImpl implements PrivateService {
         log.debug("+ changeRequestStatusByUserIdAndEventId. userId={}, eventId={}, eventRequestStatusUpdateRequest: {}",
                 userId, eventId, eventRequestStatusUpdateRequest);
 
-        checkUserExist(userId);
+        validations.checkUserExist(userId);
 
         Event event = eventRepository.findById(eventId)
                 .orElseThrow(() -> new ObjectNotFoundException("eventId = " + eventId + "not found"));
-        checkEventRequestsLimit(event);
+        conflicts.checkEventRequestsLimit(event);
 
         List<Long> ids = eventRequestStatusUpdateRequest.getRequestIds();
         int requestsQuantity = eventRequestStatusUpdateRequest.getRequestIds().size();
-        State status = eventRequestStatusUpdateRequest.getStatus();
+        String status = eventRequestStatusUpdateRequest.getStatus();
 
         Set<Request> requests = requestRepository.findByIdIn(ids).toSet();
-        checkRequestStatus(requests);
+        conflicts.checkRequestStatus(requests);
         log.debug("+ changeRequestStatusByUserIdAndEventId. requests: {}", requests);
 
         EventRequestStatusUpdateResult answer = getEventRequestStatusUpdateResult(status, requests, event, requestsQuantity);
@@ -153,31 +160,7 @@ public class PrivateServiceImpl implements PrivateService {
         return answer;
     }
 
-    private void checkRequestStatus(Set<Request> requests) {
-        for (Request request : requests) {
-            if (!request.getStatus().equals(PENDING)) {
-                throw new ConflictException("Request status is not PENDING. Status = " + request.getStatus());
-            }
-        }
-    }
-
-    private void checkEventRequestsLimit(Event event) {
-        log.debug("+ checkEventLimit. event: {}", event);
-        long limit = event.getParticipantLimit();
-//        long requestsCount = (event.getConfirmedRequests() == null) ? 0 : event.getConfirmedRequests();
-        long requestsCount = requestRepository.countConfirmedByEventId(event.getId());
-        boolean requestModeration = event.isRequestModeration();
-        log.debug("+ checkEventLimit. limit = {}, requestsCount = {}, requestModeration = {}",
-                limit, requestsCount, requestModeration);
-        if (limit <= requestsCount && requestModeration) {
-            throw new ConflictException("Participant limit is out. limit = " + limit + ", requestsCount = " + requestsCount);
-        }
-        if (!requestModeration) {
-            throw new ConflictException("No request moderation needed");
-        }
-    }
-
-    private EventRequestStatusUpdateResult getEventRequestStatusUpdateResult(State status,
+    private EventRequestStatusUpdateResult getEventRequestStatusUpdateResult(String status,
                                                                              Set<Request> requests,
                                                                              Event event,
                                                                              int requestsQuantity) {
@@ -192,16 +175,16 @@ public class PrivateServiceImpl implements PrivateService {
             log.debug("+ getEventRequestStatusUpdateResult. confirmedRequestsCount = {}, participantLimit() = {}, " +
                             "request: {}",
                     confirmedRequestsCount, event.getParticipantLimit(), request);
-            if (request.getStatus().equals(PENDING)
+            if (request.getStatus().equals(PENDING.toString())
                     && event.getParticipantLimit() >= confirmedRequestsCount
-                    && status.equals(CONFIRMED)) {
-                request.setStatus(CONFIRMED);
+                    && status.equals(CONFIRMED.toString())) {
+                request.setStatus(CONFIRMED.toString());
                 requestRepository.save(request);
                 event.setConfirmedRequests(confirmedRequestsCount + 1);
                 confirmedRequests.add(mapper.toParticipationRequestDto(request));
                 log.debug("+ getEventRequestStatusUpdateResult. confirmedRequests. request: {}", request);
             } else {
-                request.setStatus(REJECTED);
+                request.setStatus(REJECTED.toString());
                 requestRepository.save(request);
                 rejectedRequests.add(mapper.toParticipationRequestDto(request));
                 log.debug("+ getEventRequestStatusUpdateResult. rejectedRequests. request: {}", request);
@@ -231,27 +214,24 @@ public class PrivateServiceImpl implements PrivateService {
     @Override
     public ParticipationRequestDto addRequestByUserId(long userId, long eventId) {
         log.debug("+ addRequestByUserId. userId = {}, eventId = {}", userId, eventId);
-        if (requestRepository.existsByEventIdAndRequesterId(eventId, userId)) {
-            throw new ConflictException("userId = " + userId + " already have request to eventId = " + eventId);
-        }
-        checkUserAndEventExist(userId, eventId);
+
+        conflicts.checkExistsByEventIdAndRequesterId(eventId, userId);
+        validations.checkUserAndEventExist(userId, eventId);
+
         Request request = new Request();
         Event event = eventRepository.findById(eventId).get();
         log.debug("participantLimit() = {}, requests = {}, requestModeration = {}",
                 event.getParticipantLimit(), requestRepository.countByEventId(eventId), event.isRequestModeration());
-        if (userId == event.getInitiator().getId()) {
-            throw new ConflictException("userId = " + userId + " initiator of eventId = " + eventId);
-        }
-        if (!event.getState().equals(PUBLISHED)) {
-            throw new ConflictException("eventId = " + eventId + " not published");
-        }
-        if (event.getParticipantLimit() <= requestRepository.countByEventId(eventId) && !event.isRequestModeration()) {
-            throw new ConflictException("eventId = " + eventId + " participantLimit is full");
-        }
+
+        conflicts.checkUserIsInitiator(userId, event);
+        conflicts.checkEventNotPublished(event);
+        conflicts.checkParticipantLimitIsFull(event);
+
         request.setEvent(event);
         if (event.getParticipantLimit() == 0) {
-            request.setStatus(CONFIRMED);
+            request.setStatus(CONFIRMED.toString());
         }
+
         log.debug("+ addRequestByUserId. request: {}", request);
         request.setRequester(userRepository.findById(userId).get());
         ParticipationRequestDto answer = mapper.toParticipationRequestDto(requestRepository.save(request).get());
@@ -261,51 +241,18 @@ public class PrivateServiceImpl implements PrivateService {
     }
 
     @Override
-    public ParticipationRequestDto cancelRequestToEventIdByUserId(long userId, long eventId) {
-        log.debug("+ cancelRequestToEventIdByUserId. userId = {}, eventId = {}", userId, eventId);
-        checkUserAndEventExist(userId, eventId);
-        Request request = requestRepository.findByRequesterAndEventId(userId, eventId).get();
-        request.setStatus(CANCELED);
+    public ParticipationRequestDto cancelRequestToEventIdByUserId(long userId, long requestId) {
+        log.debug("+ cancelRequestToEventIdByUserId. userId = {}, eventId = {}", userId, requestId);
+
+        validations.checkUserAndRequestExist(userId, requestId);
+
+        Request request = requestRepository.findById(requestId)
+                .orElseThrow(() -> new ObjectNotFoundException("requestId = " + requestId + " not found"));
+        request.setStatus(CANCELED.toString());
         ParticipationRequestDto answer = mapper.toParticipationRequestDto(requestRepository.save(request).get());
         log.debug("- cancelRequestToEventIdByUserId. answer: {}", answer);
 
         return answer;
-    }
-
-    private void checkUserExist(long userId) {
-        log.debug("+checkUserExist. userId = " + userId);
-        if (!userRepository.existsById(userId)) {
-            throw new ObjectNotFoundException("userId = " + userId + "not found");
-        }
-    }
-
-    private void checkCategoryExist(long catId) {
-        log.debug("+checkCategoryExist. catId = " + catId);
-        if (!categoryRepository.existsById(catId)) {
-            throw new ObjectNotFoundException("categoryId = " + catId + "not found");
-        }
-    }
-
-    private void checkUserAndCategoryExist(long userId, long catId) {
-        checkUserExist(userId);
-        checkCategoryExist(catId);
-        log.debug("-checkUserAndCategoryExist. Pass. userId = {}, catId = {}", userId, catId);
-    }
-
-    private void checkUserAndEventExist(long userId, long eventId) {
-        log.debug("+checkUserAndEventExist. userId = {}, eventId = {}", userId, eventId);
-        checkUserExist(userId);
-        checkEventExist(eventId);
-        log.debug("-checkUserAndEventExist. Pass. userId = {}, eventId = {}", userId, eventId);
-    }
-
-    @Override
-    public void checkEventExist(long eventId) {
-        log.debug("+checkEventExist. eventId = " + eventId);
-        if (!eventRepository.existsById(eventId)) {
-            throw new ObjectNotFoundException("eventId = " + eventId + "not found");
-        }
-        log.debug("-checkEventExist. Pass. eventId = " + eventId);
     }
 
     private Event setLocationToModel(Event event, Location location) {
@@ -315,60 +262,57 @@ public class PrivateServiceImpl implements PrivateService {
         return eventRepository.save(event).get();
     }
 
-    private EventFullDto setLocationToEventFullDto(EventFullDto eventFullDto, Event event){
+    private EventFullDto setLocationToEventFullDto(EventFullDto eventFullDto, Event event) {
         eventFullDto.setLocation(new Location(event.getLocationLat(), event.getLocationLong()));
 
         return eventFullDto;
     }
 
     @Override
-    public  <T extends UpdateEventRequest> Event prepareEventForUpdate(Event event, T o) {
-        log.debug("+ prepareEventForUpdate. event: {}, o: {}", event, o);
-        if (event.getState().equals(PUBLISHED)) {
-            throw new ConflictException("eventId = " + event.getId() + "already published");
+    public  <T extends UpdateEventRequest> Event prepareEventForUpdate(Event event, T updateEventRequest) {
+        log.debug("+ prepareEventForUpdate. event: {}, o: {}", event, updateEventRequest);
+        conflicts.checkEventPublished(event.getId());
+
+        if (updateEventRequest.getAnnotation() != null) {
+            event.setAnnotation(updateEventRequest.getAnnotation());
         }
-        if (o.getAnnotation() != null) {
-            event.setAnnotation(o.getAnnotation());
+        if (updateEventRequest.getCategory() != null) {
+            event.setCategory(categoryRepository.findById(updateEventRequest.getCategory()).get());
         }
-        if (o.getCategory() != null) {
-            event.setCategory(categoryRepository.findById(o.getCategory()).get());
+        if (updateEventRequest.getDescription() != null) {
+            event.setDescription(updateEventRequest.getDescription());
         }
-        if (o.getDescription() != null) {
-            event.setDescription(o.getDescription());
+        if (updateEventRequest.getEventDate() != null) {
+            event.setEventDate(LocalDateTime.parse(updateEventRequest.getEventDate(), formatter));
         }
-        if (o.getEventDate() != null) {
-            event.setEventDate(LocalDateTime.parse(o.getEventDate(), formatter));
+        if (updateEventRequest.getLocation() != null) {
+            event.setLocationLat(updateEventRequest.getLocation().getLat());
+            event.setLocationLong(updateEventRequest.getLocation().getLon());
         }
-        if (o.getLocation() != null) {
-            event.setLocationLat(o.getLocation().getLat());
-            event.setLocationLong(o.getLocation().getLon());
+        if (updateEventRequest.getPaid() != null) {
+            event.setPaid(updateEventRequest.getPaid());
         }
-        if (o.getPaid() != null) {
-            event.setPaid(o.getPaid());
+        if (updateEventRequest.getParticipantLimit() != null) {
+            event.setParticipantLimit(updateEventRequest.getParticipantLimit());
         }
-        if (o.getParticipantLimit() != null) {
-            event.setParticipantLimit(o.getParticipantLimit());
+        if (updateEventRequest.getRequestModeration() != null) {
+            event.setRequestModeration(updateEventRequest.getRequestModeration());
         }
-        if (o.getRequestModeration() != null) {
-            event.setRequestModeration(o.getRequestModeration());
-        }
-        if (o.getStateAction() != null) {
-            if (o.getStateAction().equals(PUBLISH_EVENT.toString())) {
-                if (event.getState().equals(CANCELED)) {
-                    throw new ConflictException("eventId = " + event.getId() + " is canceled");
-                }
-                event.setState(PUBLISHED);
+        if (updateEventRequest.getStateAction() != null) {
+            if (updateEventRequest.getStateAction().equals(PUBLISH_EVENT.toString())) {
+                conflicts.checkEventCanceled(event);
+                event.setState(PUBLISHED.toString());
                 event.setPublishedOn(LocalDateTime.now());
-            } else if (o.getStateAction().equals(CANCEL_REVIEW.toString())) {
-                event.setState(CANCELED);
-            } else if (o.getStateAction().equals(REJECT_EVENT.toString())) {
-                event.setState(CANCELED);
+            } else if (updateEventRequest.getStateAction().equals(CANCEL_REVIEW.toString())) {
+                event.setState(CANCELED.toString());
+            } else if (updateEventRequest.getStateAction().equals(REJECT_EVENT.toString())) {
+                event.setState(CANCELED.toString());
             } else {
-                    event.setState(PENDING);
+                    event.setState(PENDING.toString());
                 }
         }
-        if (o.getTitle() != null) {
-            event.setTitle(o.getTitle());
+        if (updateEventRequest.getTitle() != null) {
+            event.setTitle(updateEventRequest.getTitle());
         }
         log.debug("- prepareEventForUpdate. event: {}", event);
 

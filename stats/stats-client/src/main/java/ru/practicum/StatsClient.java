@@ -16,10 +16,11 @@ import java.util.Map;
 
 @Slf4j
 @Service
-@PropertySource("classpath:application.properties")
+@PropertySource("classpath:client.properties")
 public class StatsClient extends BaseClient {
+
     @Autowired
-    public StatsClient(@Value("${stats-server.url:http://localhost:9090}") String serverUrl, RestTemplateBuilder builder) {
+    public StatsClient(@Value("${stats.server.url}") String serverUrl, RestTemplateBuilder builder) {
         super(
                 builder
                         .uriTemplateHandler(new DefaultUriBuilderFactory(serverUrl))

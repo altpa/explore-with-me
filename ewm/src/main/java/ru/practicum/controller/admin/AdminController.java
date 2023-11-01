@@ -21,7 +21,6 @@ import ru.practicum.dto.user.NewUserRequest;
 import ru.practicum.dto.complination.UpdateCompilationRequest;
 import ru.practicum.dto.event.UpdateEventAdminRequest;
 import ru.practicum.dto.user.UserDto;
-import ru.practicum.model.State;
 import ru.practicum.service.admin.AdminService;
 
 import javax.validation.Valid;
@@ -72,7 +71,7 @@ public class AdminController {
     @GetMapping("/events")
     @ResponseStatus(OK)
     public Set<EventFullDto> getEvents(@RequestParam(required = false) List<Long> users,
-                                       @RequestParam(required = false) List<State> states,
+                                       @RequestParam(required = false) List<String> states,
                                        @RequestParam(required = false) List<Long> categories,
                                        @RequestParam(required = false) String rangeStart,
                                        @RequestParam(required = false) String rangeEnd,

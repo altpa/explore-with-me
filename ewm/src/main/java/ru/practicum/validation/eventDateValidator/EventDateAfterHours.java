@@ -1,4 +1,4 @@
-package ru.practicum.validation;
+package ru.practicum.validation.eventDateValidator;
 
 import javax.validation.Constraint;
 import javax.validation.Payload;
@@ -14,7 +14,10 @@ import java.lang.annotation.Target;
 @Retention(value = RetentionPolicy.RUNTIME)
 public @interface EventDateAfterHours {
     String message() default "Событие не может быть раньше, чем определенное время от текущего момента.";
+
     int hours();
+
     Class<?>[] groups() default {};
+
     Class<? extends Payload>[] payload() default {};
 }

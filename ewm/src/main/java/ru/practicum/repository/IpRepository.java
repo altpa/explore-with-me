@@ -9,5 +9,6 @@ import ru.practicum.model.UniIp;
 @Transactional
 public interface IpRepository extends Repository<UniIp, Long> {
     boolean existsByIpAddressAndEventId(String ipAddress, Long eventId);
+
     void save(UniIp uniIp);
 }

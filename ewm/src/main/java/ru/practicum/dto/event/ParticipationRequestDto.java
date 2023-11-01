@@ -2,8 +2,6 @@ package ru.practicum.dto.event;
 
 import lombok.Data;
 import org.springframework.lang.Nullable;
-import ru.practicum.model.Event;
-import ru.practicum.model.User;
 
 import javax.validation.constraints.Positive;
 

@@ -1,6 +1,5 @@
 package ru.practicum.model;
 
-import lombok.AllArgsConstructor;
 import lombok.Data;
 
 import javax.persistence.Column;
@@ -21,12 +20,4 @@ public class Category {
 
     @Column(name = "name")
     private String name;
-
-    public Category(Long id, String name) {
-        this.id = id;
-        this.name = name;
-    }
-
-    public Category() {
-    }
 }
