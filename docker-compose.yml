@@ -14,7 +14,7 @@ services:
       - POSTGRES_USER=$USER
       - POSTGRES_PASSWORD=$PASSWORD
 
-  ewm:
+  ewm-service:
     build: ${EWM_BUILD}
     image: ${EWM_IMAGE}
     container_name: ${EWM_CONTAINER_NAME}
