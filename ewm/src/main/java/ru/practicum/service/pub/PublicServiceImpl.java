@@ -21,7 +21,6 @@ import ru.practicum.repository.CategoryRepository;
 import ru.practicum.repository.CompilationRepository;
 import ru.practicum.repository.EventRepository;
 import ru.practicum.repository.IpRepository;
-import ru.practicum.service.admin.AdminService;
 import ru.practicum.service.stats.MainStatsService;
 import ru.practicum.validation.validations.Validations;
 
@@ -42,8 +41,6 @@ public class PublicServiceImpl implements PublicService {
     private final CompilationRepository compilationRepository;
     private final EventRepository eventRepository;
     private final IpRepository ipRepository;
-
-    private final AdminService adminService;
     private final MainStatsService mainStatsService;
 
     private final Validations validations;
@@ -152,7 +149,7 @@ public class PublicServiceImpl implements PublicService {
         Event event = eventRepository.findPublishedById(eventId)
                 .orElseThrow(() -> new ObjectNotFoundException("published event not found. eventId = " + eventId));
 
-        event = increaseViews(ipAddress, event);
+        increaseViews(ipAddress, event);
         mainStatsService.addHit(new HitDto("EWM", "/events/" + eventId, ipAddress));
 
         EventFullDto answer = mapper.toEventFullDto(event);
