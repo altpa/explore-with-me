@@ -13,14 +13,6 @@ services:
       - SPRING_DRIVER_CLASS_NAME=$DRIVER_CLASS_NAME
       - POSTGRES_USER=$USER
       - POSTGRES_PASSWORD=$PASSWORD
-    deploy:
-      resources:
-        limits:
-          cpus: 2.00
-          memory: 1G
-        reservations:
-          cpus: 1.00
-          memory: 512M
 
   ewm:
     build: ${EWM_BUILD}
@@ -36,15 +28,6 @@ services:
       - POSTGRES_USER=$USER
       - POSTGRES_PASSWORD=$PASSWORD
       - STATS_SERVER_URL=$SERVER_URL
-    deploy:
-      resources:
-        limits:
-          cpus: 2.00
-          memory: 1G
-        reservations:
-          cpus: 1.00
-          memory: 512M
-
 
   ewm-db:
     ports:
