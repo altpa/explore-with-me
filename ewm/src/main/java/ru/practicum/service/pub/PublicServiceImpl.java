@@ -159,16 +159,16 @@ public class PublicServiceImpl implements PublicService {
     }
 
     private Event increaseViews(String ipAddress, Event event) {
-        if (!ipRepository.existsByIpAddressAndEventId(ipAddress, event.getId())) {
+        if (!ipRepository.existsByIpAddressAndEvent(ipAddress, event.getId())) {
             log.debug("ipAddress = {} is unique", ipAddress);
             UniIp uniIp = new UniIp();
             uniIp.setIpAddress(ipAddress);
             uniIp.setEvent(event);
-            ipRepository.save(uniIp);
+            uniIp = ipRepository.save(uniIp).get();
 
             event.setViews(event.getViews() + 1);
             eventRepository.save(event);
-            log.debug("eventId = {} increased views = {}", event.getId(), event.getViews());
+            log.debug("eventId = {} increased views = {}, uniIp = {}", event.getId(), event.getViews(), uniIp);
             return event;
         }
         log.debug("ipAddress = {} not unique", ipAddress);
