@@ -150,7 +150,7 @@ public class PublicServiceImpl implements PublicService {
                 .orElseThrow(() -> new ObjectNotFoundException("published event not found. eventId = " + eventId));
 
 //        increaseViews(ipAddress, event);
-//        mainStatsService.addHit(new HitDto("EWM", "/events/" + eventId, ipAddress));
+        mainStatsService.addHit(new HitDto("EWM", "/events/" + eventId, ipAddress));
 
         EventFullDto answer = mapper.toEventFullDto(event);
         log.debug("- getEvents. answer = {}", answer);
