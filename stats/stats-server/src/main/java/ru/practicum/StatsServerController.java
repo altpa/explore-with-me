@@ -7,10 +7,14 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 import ru.practicum.service.StatsService;
 
 import java.util.List;
+
+import static org.springframework.http.HttpStatus.CREATED;
+import static org.springframework.http.HttpStatus.OK;
 
 @Slf4j
 @RestController
@@ -20,6 +24,7 @@ public class StatsServerController {
     private final StatsService statsService;
 
     @GetMapping("/stats")
+    @ResponseStatus(OK)
     public List<ViewStatsDto> getStats(@RequestParam String start,
                                         @RequestParam String end,
                                         @RequestParam(required = false) List<String> uris,
@@ -33,6 +38,7 @@ public class StatsServerController {
     }
 
     @PostMapping("/hit")
+    @ResponseStatus(CREATED)
     public HitDto addHit(@RequestBody HitDto hitDto) {
         log.debug("+StatsServerController - addHit: hitDto: app = {}, uri = {}, ip = {}, timestamp = {}",
                 hitDto.getApp(), hitDto.getUri(), hitDto.getIp(), hitDto.getTimestamp());
