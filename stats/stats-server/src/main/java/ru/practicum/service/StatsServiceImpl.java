@@ -26,12 +26,12 @@ public class StatsServiceImpl implements StatsService {
     private static final HitMapper mapper = HitMapper.INSTANCE;
 
     @Override
-    public List<ViewStatsDto> getStats(String startRequest, String endRequest, List<String>  uris, boolean unique) {
+    public List<ViewStatsDto> getStats(String startRequest, String endRequest, List<String>  uris, Boolean unique) {
         LocalDateTime start = LocalDateTime.parse(UriUtils.decode(startRequest, "UTF-8"), formatter);
         LocalDateTime end = LocalDateTime.parse(UriUtils.decode(endRequest, "UTF-8"), formatter);
 
         log.debug("+StatsServiceImpl - getStats: start = {}, end = {}, uri = {}, unique = {}", start, end, uris, unique);
-        List<ViewStatsDto> answer = new ArrayList<>(Collections.emptyList());
+        List<ViewStatsDto> answer = Collections.emptyList();
 
         if (uris != null) {
             answer = findWithUri(uris, start, end, unique);
@@ -73,7 +73,7 @@ public class StatsServiceImpl implements StatsService {
         return answer;
     }
 
-    private List<ViewStatsDto> findWithoutUri(LocalDateTime start, LocalDateTime end, boolean unique) {
+    private List<ViewStatsDto> findWithoutUri(LocalDateTime start, LocalDateTime end, Boolean unique) {
         List<ViewStatsDto> answer = new ArrayList<>(Collections.emptyList());
 
         if (unique) {
