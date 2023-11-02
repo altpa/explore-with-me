@@ -139,8 +139,21 @@ public class PublicServiceImpl implements PublicService {
     }
 
     private Event addHitAndUpdateViews(String ipAddress, Event e) {
-        mainStatsService.addHit(new HitDto("EWM", "/events/", ipAddress));
-        return increaseViews(ipAddress, e);
+        Event newEvent = increaseViews(ipAddress, e);
+        if (newEvent.getViews() > e.getViews()) {
+            mainStatsService.addHit(new HitDto("EWM", "/events/", ipAddress));
+        }
+
+        return newEvent;
+    }
+
+    private Event addHitAndUpdateViewsByEventId(String ipAddress, Event e) {
+        Event newEvent = increaseViews(ipAddress, e);
+        if (newEvent.getViews() > e.getViews()) {
+            mainStatsService.addHit(new HitDto("EWM", "/events/" + e.getId(), ipAddress));
+        }
+
+        return newEvent;
     }
 
     @Override
@@ -149,8 +162,7 @@ public class PublicServiceImpl implements PublicService {
         Event event = eventRepository.findPublishedById(eventId)
                 .orElseThrow(() -> new ObjectNotFoundException("published event not found. eventId = " + eventId));
 
-        increaseViews(ipAddress, event);
-        mainStatsService.addHit(new HitDto("EWM", "/events/" + eventId, ipAddress));
+        event = addHitAndUpdateViewsByEventId(ipAddress, event);
 
         EventFullDto answer = mapper.toEventFullDto(event);
         log.debug("- getEvents. answer = {}", answer);
