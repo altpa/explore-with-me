@@ -12,7 +12,7 @@ import java.util.Optional;
 @EnableJpaRepositories
 @Transactional
 public interface IpRepository extends Repository<UniIp, Long> {
-    @Query(value = "SELECT case when count(u)> 0 then true else false end FROM UniIp u WHERE u.ipAddress = :ipAddress AND u.event.id like :eventId")
+    @Query(value = "SELECT case when count(u)> 0 then true else false end FROM UniIp u WHERE u.ipAddress like :ipAddress AND u.event.id = :eventId")
     boolean existsByIpAddressAndEvent(@Param("ipAddress") String ipAddress, @Param("eventId") Long eventId);
 
     Optional<UniIp> save(UniIp uniIp);
