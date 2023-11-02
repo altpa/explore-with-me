@@ -22,7 +22,6 @@ public interface PrivateService {
     EventFullDto updateEventByUserIdAndEventId(long userId, long eventId,
                                               UpdateEventUserRequest updateEventUserRequest);
 
-
     Set<ParticipationRequestDto> getRequestByUserIdAndEventId(long userId, long eventId);
 
     EventRequestStatusUpdateResult changeRequestStatusByUserIdAndEventId(long userId, long eventId,
