@@ -18,8 +18,8 @@ public interface  StatsRepository extends Repository<Hit, Long> {
             "FROM hits h " +
             "WHERE cast(h.timestamp as date) " +
             "BETWEEN cast(:start as date) AND cast(:end as date) " +
-            "AND h.uri = :uri " +
-            "GROUP BY h.uri, h.app " +
+            "AND uri = :uri " +
+            "GROUP BY app, uri " +
             "ORDER BY hits ASC", nativeQuery = true)
     ViewStatsDtoInterface findNotUnique(LocalDateTime start, LocalDateTime end, String uri);
 
