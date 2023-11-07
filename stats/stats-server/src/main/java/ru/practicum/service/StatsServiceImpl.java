@@ -33,17 +33,17 @@ public class StatsServiceImpl implements StatsService {
         log.debug("+StatsServiceImpl - getStats: start = {}, end = {}, uri = {}, unique = {}", start, end, uris, unique);
         List<ViewStatsDto> answer = new ArrayList<>(Collections.emptyList());
 
-//        if (uris != null) {
-//            answer = findWithUri(uris, start, end, unique);
-//        } else {
-//            answer = findWithoutUri(start, end, unique);
-//        }
-//        log.debug("-StatsServiceImpl - getStats: answer = {}", answer);
-//
-//        answer = sortViewStats(answer);
-//        log.debug("-StatsServiceImpl - getStats: sorted answer = {}", answer);
+        if (uris != null) {
+            answer = findWithUri(uris, start, end, unique);
+        } else {
+            answer = findWithoutUri(start, end, unique);
+        }
+        log.debug("-StatsServiceImpl - getStats: answer = {}", answer);
 
-        answer.add(new ViewStatsDto("app", "uri", 10L));
+//        answer = sortViewStats(answer);
+        log.debug("-StatsServiceImpl - getStats: sorted answer = {}", answer);
+
+//        answer.add(new ViewStatsDto("app", "uri", 10L));
         return answer;
     }
 
