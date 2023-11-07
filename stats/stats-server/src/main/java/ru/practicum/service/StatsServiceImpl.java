@@ -50,7 +50,7 @@ public class StatsServiceImpl implements StatsService {
     @Override
     public HitDto addHit(HitDto hitDto) {
         log.debug("+StatsServiceImpl - addHit: hitDto = {}", hitDto);
-        Hit answer = statsRepository.save(mapper.toModel(hitDto));
+        Hit answer = statsRepository.save(mapper.toModel(hitDto)).orElseThrow(() -> new RuntimeException("не удалось сохранить hit: " + hitDto.toString()));
         log.debug("-StatsServiceImpl - addHit: answer = {}", answer);
 
         return mapper.toDto(answer);

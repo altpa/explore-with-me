@@ -10,11 +10,12 @@ import ru.practicum.model.Hit;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 
 @Transactional
 @EnableJpaRepositories
 public interface  StatsRepository extends Repository<Hit, Long> {
-    @Query(value = "SELECT h.app, h.uri, COUNT(h.ip) AS hits " +
+    @Query(value = "SELECT new ru.practicum.ViewStatsDto(h.app, h.uri, COUNT(h.ip) AS hits) " +
             "FROM Hit h " +
             "WHERE h.timestamp BETWEEN :start AND :end " +
             "AND h.uri IN :uris " +
@@ -46,5 +47,5 @@ public interface  StatsRepository extends Repository<Hit, Long> {
             "ORDER BY hits DESC")
     List<ViewStatsDto> findAllEmptyUrisNotUnique(@Param("start") LocalDateTime start, @Param("end") LocalDateTime end);
 
-    Hit save(Hit hit);
+    Optional<Hit> save(Hit hit);
 }
