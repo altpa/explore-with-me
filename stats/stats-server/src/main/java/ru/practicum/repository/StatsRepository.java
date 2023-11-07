@@ -14,7 +14,7 @@ import java.util.List;
 @Transactional
 @EnableJpaRepositories
 public interface  StatsRepository extends Repository<Hit, Long> {
-    @Query(value = "SELECT new ru.practicum.ViewStatsDto(h.app, h.uri, COUNT(h.ip) AS hits) " +
+    @Query(value = "SELECT h.app, h.uri, COUNT(h.ip) AS hits " +
             "FROM Hit h " +
             "WHERE h.timestamp BETWEEN :start AND :end " +
             "AND h.uri IN :uris " +

@@ -2,6 +2,7 @@ package ru.practicum.controller.stats;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import ru.practicum.HitDto;
@@ -14,12 +15,13 @@ import java.util.List;
 @RequestMapping
 @RequiredArgsConstructor
 public class StatsController {
+    private static final String format ="yyyy-MM-dd HH:mm:ss";
 
     private final MainStatsServiceImpl service;
 
     @GetMapping("/stats")
-    public ResponseEntity<Object> getStats(@RequestParam String start,
-                                           @RequestParam String end,
+    public ResponseEntity<Object> getStats(@RequestParam @DateTimeFormat(pattern = format) String start,
+                                           @RequestParam @DateTimeFormat(pattern = format) String end,
                                            @RequestParam(required = false) List<String> uris,
                                            @RequestParam(defaultValue = "false") Boolean unique) {
 
