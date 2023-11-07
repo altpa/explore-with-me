@@ -6,12 +6,13 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.util.UriUtils;
 import ru.practicum.HitDto;
 import ru.practicum.ViewStatsDto;
+import ru.practicum.ViewStatsDtoInterface;
 import ru.practicum.mappers.HitMapper;
 import ru.practicum.model.Hit;
 import ru.practicum.repository.StatsRepository;
-import java.time.format.DateTimeFormatter;
 
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -66,7 +67,9 @@ public class StatsServiceImpl implements StatsService {
                 log.debug("-StatsServiceImpl - findWithUri, unique: answer = {}", answer);
             } else {
                 log.debug("+StatsServiceImpl - findWithUri, not unique: uri = {}", uri);
-                answer.add(statsRepository.findNotUnique(start, end, uri));
+                ViewStatsDtoInterface viewStatsDtoInterface = statsRepository.findNotUnique(start, end, uri);
+                ViewStatsDto viewStatsDto = new ViewStatsDto(viewStatsDtoInterface.getApp(), viewStatsDtoInterface.getUri(), viewStatsDtoInterface.getCount());
+                answer.add(viewStatsDto);
                 log.debug("-StatsServiceImpl - findWithUri, not unique: answer = {}", answer);
             }
         }
