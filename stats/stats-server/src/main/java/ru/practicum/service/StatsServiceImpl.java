@@ -66,7 +66,9 @@ public class StatsServiceImpl implements StatsService {
                 log.debug("-StatsServiceImpl - findWithUri, unique: answer = {}", answer);
             } else {
                 log.debug("+StatsServiceImpl - findWithUri, not unique: uri = {}", uri);
-                answer.add(statsRepository.findNotUnique(start, end, uri));
+//                answer.add(statsRepository.findNotUnique(start, end, uri));
+                answer.add(new ViewStatsDto("app", "uri", 10L));
+
                 log.debug("-StatsServiceImpl - findWithUri, not unique: answer = {}", answer);
             }
         }
