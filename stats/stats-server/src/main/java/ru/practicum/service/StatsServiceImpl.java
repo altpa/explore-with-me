@@ -59,20 +59,17 @@ public class StatsServiceImpl implements StatsService {
     private List<ViewStatsDto> findWithUri(List<String> uris, LocalDateTime start, LocalDateTime end, boolean unique) {
         List<ViewStatsDto> answer = new ArrayList<>(Collections.emptyList());
 
-        for (String uri : uris) {
+//        for (String uri : uris) {
             if (unique) {
-                log.debug("+StatsServiceImpl - findWithUri, unique: uri = {}", uri);
-                answer.add(statsRepository.findUnique(start, end, uri));
-                log.debug("-StatsServiceImpl - findWithUri, unique: answer = {}", answer);
+//                log.debug("+StatsServiceImpl - findWithUri, unique: uri = {}", uri);
+                answer.addAll(statsRepository.findUnique(start, end, uris));
+//                log.debug("-StatsServiceImpl - findWithUri, unique: answer = {}", answer);
             } else {
-                log.debug("+StatsServiceImpl - findWithUri, not unique: uri = {}", uri);
-//                ViewStatsDtoInterface viewStatsDtoInterface = statsRepository.findNotUnique(start, end, uri);
-//                log.debug("-StatsServiceImpl - findWithUri, not unique: viewStatsDtoInterface = {}", viewStatsDtoInterface);
-//                ViewStatsDto viewStatsDto = new ViewStatsDto(viewStatsDtoInterface.getApp(), viewStatsDtoInterface.getUri(), viewStatsDtoInterface.getCount());
-                answer.add(statsRepository.findNotUnique(start, end, uri));
-                log.debug("-StatsServiceImpl - findWithUri, not unique: answer = {}", answer);
+//                log.debug("+StatsServiceImpl - findWithUri, not unique: uri = {}", uri);
+                answer.addAll(statsRepository.findNotUnique(start, end, uris));
+//                log.debug("-StatsServiceImpl - findWithUri, not unique: answer = {}", answer);
             }
-        }
+//        }
 
         return sortViewStats(answer);
     }
