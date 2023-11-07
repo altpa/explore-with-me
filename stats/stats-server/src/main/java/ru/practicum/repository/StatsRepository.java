@@ -13,7 +13,7 @@ import java.util.List;
 @Transactional
 @EnableJpaRepositories
 public interface  StatsRepository extends Repository<Hit, Long> {
-    @Query(value = "SELECT new ru.practicum.ViewStatsDto(h.app, h.uri, COUNT(h.ip) AS hits) " +
+    @Query(value = "SELECT new ViewStatsDto(h.app, h.uri, COUNT(h.ip) AS hits) " +
             "FROM Hit h " +
             "WHERE cast(h.timestamp as date) " +
             "BETWEEN cast(:start as date) AND cast(:end as date) " +
