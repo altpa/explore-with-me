@@ -31,19 +31,19 @@ public class StatsServiceImpl implements StatsService {
         LocalDateTime end = LocalDateTime.parse(UriUtils.decode(endRequest, "UTF-8"), formatter);
 
         log.debug("+StatsServiceImpl - getStats: start = {}, end = {}, uri = {}, unique = {}", start, end, uris, unique);
-        List<ViewStatsDto> answer = Collections.emptyList();
+        List<ViewStatsDto> answer = new ArrayList<>(Collections.emptyList());
 
-//        if (uris != null) {
-//            answer = findWithUri(uris, start, end, unique);
-//        } else {
-//            answer = findWithoutUri(start, end, unique);
-//        }
-//        log.debug("-StatsServiceImpl - getStats: answer = {}", answer);
-//
-//        answer = sortViewStats(answer);
-//        log.debug("-StatsServiceImpl - getStats: sorted answer = {}", answer);
+        if (uris != null) {
+            answer = findWithUri(uris, start, end, unique);
+        } else {
+            answer = findWithoutUri(start, end, unique);
+        }
+        log.debug("-StatsServiceImpl - getStats: answer = {}", answer);
 
-        answer.add(new ViewStatsDto("app", "uri", 10L));
+        answer = sortViewStats(answer);
+        log.debug("-StatsServiceImpl - getStats: sorted answer = {}", answer);
+
+//        answer.add(new ViewStatsDto("app", "uri", 10L));
         return answer;
     }
 
