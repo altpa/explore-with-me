@@ -13,19 +13,14 @@ import java.util.List;
 @Transactional
 @EnableJpaRepositories
 public interface  StatsRepository extends Repository<Hit, Long> {
-//    @Query(value = "SELECT new ru.practicum.ViewStatsDto(h.app, h.uri, COUNT(h.ip) AS hits) " +
-//            "FROM Hit h " +
-//            "WHERE cast(h.timestamp as date) " +
-//            "BETWEEN cast(:start as date) AND cast(:end as date) " +
-//            "AND h.uri = :uri " +
-//            "GROUP BY h.uri, h.app " +
-//            "ORDER BY hits ASC")
-//    ViewStatsDto findNotUnique(LocalDateTime start, LocalDateTime end, String uri);
-
-//    @Query(value = "SELECT h FROM Hit h WHERE cast(h.timestamp as date) " +
-//            "BETWEEN cast(:start as date) AND cast(:end as date) AND h.uri = :uri")
-//    List<Hit> findNotUnique(LocalDateTime start, LocalDateTime end, String uri);
-    List<Hit> findTimestampBetweenAndUri(LocalDateTime start, LocalDateTime end, String uri);
+    @Query(value = "SELECT new ru.practicum.ViewStatsDto(h.app, h.uri, COUNT(h.ip) AS hits) " +
+            "FROM Hit h " +
+            "WHERE cast(h.timestamp as date) " +
+            "BETWEEN cast(:start as date) AND cast(:end as date) " +
+            "AND h.uri = :uri " +
+            "GROUP BY h.uri, h.app " +
+            "ORDER BY hits ASC", nativeQuery = true)
+    ViewStatsDto findNotUnique(LocalDateTime start, LocalDateTime end, String uri);
 
     @Query(value = "SELECT new ru.practicum.ViewStatsDto(h.app, h.uri, COUNT(DISTINCT h.ip) AS hits) " +
             "FROM Hit h " +
