@@ -40,7 +40,7 @@ public class StatsServiceImpl implements StatsService {
         }
         log.debug("-StatsServiceImpl - getStats: answer = {}", answer);
 
-        answer = sortViewStats(answer);
+//        answer = sortViewStats(answer);
         log.debug("-StatsServiceImpl - getStats: sorted answer = {}", answer);
 
         return answer;
