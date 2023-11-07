@@ -16,7 +16,7 @@ import java.util.List;
 public interface  StatsRepository extends Repository<Hit, Long> {
     @Query(value = "SELECT new ru.practicum.ViewStatsDto(h.app, h.uri, COUNT(h.ip) AS hits) " +
             "FROM Hit h " +
-            "WHERE cast(h.timestamp as date) BETWEEN :start AND :end " +
+            "WHERE h.timestamp BETWEEN :start AND :end " +
             "AND h.uri IN :uris " +
             "GROUP BY h.uri, h.app " +
             "ORDER BY hits ASC")
@@ -24,7 +24,7 @@ public interface  StatsRepository extends Repository<Hit, Long> {
 
     @Query(value = "SELECT new ru.practicum.ViewStatsDto(h.app, h.uri, COUNT(DISTINCT h.ip) AS hits) " +
             "FROM Hit h " +
-            "WHERE cast(h.timestamp as date) BETWEEN :start AND :end " +
+            "WHERE h.timestamp BETWEEN :start AND :end " +
             "AND h.uri IN :uris " +
             "GROUP BY h.uri, h.app " +
             "ORDER BY hits ASC")
