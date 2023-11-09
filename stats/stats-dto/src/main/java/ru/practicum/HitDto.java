@@ -19,4 +19,10 @@ public class HitDto {
 
     @NotBlank(message = "timestamp may not be blank")
     private String timestamp;
+
+    public HitDto(String app, String uri, String ip) {
+        this.app = app;
+        this.uri = uri;
+        this.ip = ip;
+    }
 }

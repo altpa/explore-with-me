@@ -13,28 +13,8 @@ services:
       - SPRING_DRIVER_CLASS_NAME=$DRIVER_CLASS_NAME
       - POSTGRES_USER=$USER
       - POSTGRES_PASSWORD=$PASSWORD
-      - STATS_SERVER_URL=$SERVER_URL
-    deploy:
-      resources:
-        limits:
-          cpus: ${CPUS_LIMITS}
-          memory: ${MEMORY_LIMITS}
-        reservations:
-          cpus: ${CPUS_RESERVATIONS}
-          memory: ${MEMORY_RESERVATIONS}
 
-  stats-db:
-    ports:
-      - ${STATS_DB_PORTS}
-    image: ${DB_IMAGE}
-    container_name: stats-db_container
-    environment:
-      - POSTGRES_DB=$STATS_DB_CONTAINER_NAME
-      - POSTGRES_USER=$USER
-      - POSTGRES_PASSWORD=$PASSWORD
-
-
-  ewm:
+  ewm-service:
     build: ${EWM_BUILD}
     image: ${EWM_IMAGE}
     container_name: ${EWM_CONTAINER_NAME}
@@ -44,23 +24,32 @@ services:
       - ewm-db
     environment:
       - SPRING_DATASOURCE_URL=$EWM_DATASOURCE_URL
+      - SPRING_DRIVER_CLASS_NAME=$DRIVER_CLASS_NAME
       - POSTGRES_USER=$USER
       - POSTGRES_PASSWORD=$PASSWORD
-    deploy:
-      resources:
-        limits:
-          cpus: ${CPUS_LIMITS}
-          memory: ${MEMORY_LIMITS}
-        reservations:
-          cpus: ${CPUS_RESERVATIONS}
-          memory: ${MEMORY_RESERVATIONS}
+      - STATS_SERVER_URL=$SERVER_URL
 
   ewm-db:
     ports:
       - ${EWM_DB_PORTS}
     image: ${DB_IMAGE}
-    container_name: $EWM_DB_CONTAINER_NAME
+    container_name: ewm-db_container
     environment:
-      - POSTGRES_DB=ewm-db
+      - POSTGRES_DB=$EWM_DB_NAME
       - POSTGRES_USER=$USER
       - POSTGRES_PASSWORD=$PASSWORD
+    volumes:
+      - ./data:/data/ewm-db
+    command: -p ${EWM_DB_INNER_PORT}
+
+  stats-db:
+    ports:
+      - ${STATS_DB_PORTS}
+    image: ${DB_IMAGE}
+    container_name: stats-db_container
+    environment:
+      - POSTGRES_DB=$STATS_DB_NAME
+      - POSTGRES_USER=$USER
+      - POSTGRES_PASSWORD=$PASSWORD
+    volumes:
+      - ./data:/data/stats-db

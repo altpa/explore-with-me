@@ -23,7 +23,7 @@ public class Hit {
     @Id
     @GeneratedValue(strategy = IDENTITY)
     @Column(name = "id")
-    private int id;
+    private Long id;
 
     @Column(name = "app")
     private String app;
@@ -35,5 +35,5 @@ public class Hit {
     private String ip;
 
     @Column(name = "timestamp")
-    private LocalDateTime timestamp;
+    private LocalDateTime timestamp = LocalDateTime.now();
 }

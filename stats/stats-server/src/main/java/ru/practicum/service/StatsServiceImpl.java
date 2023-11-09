@@ -9,9 +9,9 @@ import ru.practicum.ViewStatsDto;
 import ru.practicum.mappers.HitMapper;
 import ru.practicum.model.Hit;
 import ru.practicum.repository.StatsRepository;
-import java.time.format.DateTimeFormatter;
 
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -26,7 +26,7 @@ public class StatsServiceImpl implements StatsService {
     private static final HitMapper mapper = HitMapper.INSTANCE;
 
     @Override
-    public List<ViewStatsDto> getStats(String startRequest, String endRequest, List<String>  uris, boolean unique) {
+    public List<ViewStatsDto> getStats(String startRequest, String endRequest, List<String>  uris, Boolean unique) {
         LocalDateTime start = LocalDateTime.parse(UriUtils.decode(startRequest, "UTF-8"), formatter);
         LocalDateTime end = LocalDateTime.parse(UriUtils.decode(endRequest, "UTF-8"), formatter);
 
@@ -40,16 +40,17 @@ public class StatsServiceImpl implements StatsService {
         }
         log.debug("-StatsServiceImpl - getStats: answer = {}", answer);
 
-        answer = sortViewStats(answer);
+//        answer = sortViewStats(answer);
         log.debug("-StatsServiceImpl - getStats: sorted answer = {}", answer);
 
+//        answer.add(new ViewStatsDto("app", "uri", 10L));
         return answer;
     }
 
     @Override
     public HitDto addHit(HitDto hitDto) {
         log.debug("+StatsServiceImpl - addHit: hitDto = {}", hitDto);
-        Hit answer = statsRepository.save(mapper.toModel(hitDto));
+        Hit answer = statsRepository.save(mapper.toModel(hitDto)).orElseThrow(() -> new RuntimeException("не удалось сохранить hit: " + hitDto.toString()));
         log.debug("-StatsServiceImpl - addHit: answer = {}", answer);
 
         return mapper.toDto(answer);
@@ -58,22 +59,22 @@ public class StatsServiceImpl implements StatsService {
     private List<ViewStatsDto> findWithUri(List<String> uris, LocalDateTime start, LocalDateTime end, boolean unique) {
         List<ViewStatsDto> answer = new ArrayList<>(Collections.emptyList());
 
-        for (String uri : uris) {
+//        for (String uri : uris) {
             if (unique) {
-                log.debug("+StatsServiceImpl - findWithUri, unique: uri = {}", uri);
-                answer.add(statsRepository.findUnique(start, end, uri));
-                log.debug("-StatsServiceImpl - findWithUri, unique: answer = {}", answer);
+//                log.debug("+StatsServiceImpl - findWithUri, unique: uri = {}", uri);
+                answer.addAll(statsRepository.findUnique(start, end, uris));
+//                log.debug("-StatsServiceImpl - findWithUri, unique: answer = {}", answer);
             } else {
-                log.debug("+StatsServiceImpl - findWithUri, not unique: uri = {}", uri);
-                answer.add(statsRepository.findNotUnique(start, end, uri));
-                log.debug("-StatsServiceImpl - findWithUri, not unique: answer = {}", answer);
+//                log.debug("+StatsServiceImpl - findWithUri, not unique: uri = {}", uri);
+                answer.addAll(statsRepository.findNotUnique(start, end, uris));
+//                log.debug("-StatsServiceImpl - findWithUri, not unique: answer = {}", answer);
             }
-        }
+//        }
 
-        return answer;
+        return sortViewStats(answer);
     }
 
-    private List<ViewStatsDto> findWithoutUri(LocalDateTime start, LocalDateTime end, boolean unique) {
+    private List<ViewStatsDto> findWithoutUri(LocalDateTime start, LocalDateTime end, Boolean unique) {
         List<ViewStatsDto> answer = new ArrayList<>(Collections.emptyList());
 
         if (unique) {
