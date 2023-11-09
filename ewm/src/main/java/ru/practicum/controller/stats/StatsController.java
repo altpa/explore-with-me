@@ -15,7 +15,7 @@ import java.util.List;
 @RequestMapping
 @RequiredArgsConstructor
 public class StatsController {
-    private static final String format ="yyyy-MM-dd HH:mm:ss";
+    private static final String format = "yyyy-MM-dd HH:mm:ss";
 
     private final MainStatsServiceImpl service;
 

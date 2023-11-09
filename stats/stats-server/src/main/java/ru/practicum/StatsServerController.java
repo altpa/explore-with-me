@@ -22,7 +22,7 @@ import static org.springframework.http.HttpStatus.OK;
 @RequestMapping
 @RequiredArgsConstructor
 public class StatsServerController {
-    private static final String format ="yyyy-MM-dd HH:mm:ss";
+    private static final String format = "yyyy-MM-dd HH:mm:ss";
 
     private final StatsService statsService;
 
